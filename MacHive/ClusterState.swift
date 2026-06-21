@@ -61,10 +61,6 @@ final class ClusterState: ObservableObject {
     @Published var status: ClusterStatus = .notRunning
     @Published var peers: [Peer] = []
     @Published var selectedModel: ExoModel = .llama3_8b
-    @Published var setupInProgress: Bool = false
-    @Published var setupProgress: Double = 0
-    @Published var setupMessage: String = ""
-    @Published var setupError: String? = nil
     @Published var launchAtLogin: Bool = false
 
     var localPeer: Peer {
@@ -93,15 +89,6 @@ final class ClusterState: ObservableObject {
 
     func canRunModel(_ model: ExoModel) -> Bool {
         combinedRAMGB >= model.requiredRAMGB
-    }
-
-    func setSetupError(_ message: String) {
-        setupError = message
-        status = .error(message)
-    }
-
-    func clearSetupError() {
-        setupError = nil
     }
 }
 

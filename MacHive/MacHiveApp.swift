@@ -78,11 +78,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
 
-    @objc private func setupFinished() {
-        setupComplete = true
-        rebuildPopover()
-    }
-
     @objc private func togglePopover() {
         if let button = statusItem.button {
             if popover.isShown {

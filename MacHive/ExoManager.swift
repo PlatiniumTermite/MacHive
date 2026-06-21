@@ -13,7 +13,6 @@ final class ExoManager: ObservableObject {
 
     private var process: Process?
     private var statusTimer: Timer?
-    private var logObserver: NSObjectProtocol?
     private let exoDirectory = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
 
     var dashboardURL: URL {
@@ -79,13 +78,12 @@ final class ExoManager: ObservableObject {
         do {
             try task.run()
             process = task
+            startPolling()
         } catch {
             lastError = "Failed to start exo: \(error.localizedDescription)"
             isRunning = false
             process = nil
         }
-
-        startPolling()
     }
 
     func stop() {

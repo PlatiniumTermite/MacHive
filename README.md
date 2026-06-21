@@ -48,6 +48,7 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
 ## Known limitations
 
+- MacHive disables the macOS app sandbox because it must install Homebrew, Python, uv, Node.js, and the exo source outside the app container, and run `uv run exo` as a subprocess. This means MacHive is distributed as a direct-download `.app`, not through the Mac App Store.
 - Currently tested with 2 Macs; larger clusters are not yet verified.
 - The model dropdown in the menu bar is used to validate that your combined RAM can fit the selected model. The actual model selection happens inside the exo chat UI.
 - The menu bar only shows the four built-in choices: Llama 3 8B, Llama 3 70B, Qwen 2.5 32B, and Mistral 7B. Other exo-supported models must be selected from the chat UI or launched from the terminal.

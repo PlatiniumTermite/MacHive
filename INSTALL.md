@@ -72,9 +72,10 @@ To create a release `.app`:
 ## Post-install steps
 
 1. **Move to /Applications:** MacHive must be in `/Applications` for launch-at-login and some system permissions to work reliably.
-2. **Heterogeneous clusters are supported:** Each Mac in the cluster can have a different amount of RAM and a different M-series chip. MacHive adds the RAM together and shows each Mac's chip and RAM in the peer list.
-3. **Approve login item:** If you enable **Launch MacHive at login**, go to **System Settings → General → Login Items** and make sure MacHive is allowed.
-4. **Network permission:** The first time MacHive runs, macOS may ask to allow local network access. Click **Allow**.
+2. **Sandbox note:** MacHive disables the app sandbox because it needs to install Homebrew, Python, uv, Node.js, and the exo source on your Mac, and run `uv run exo` as a subprocess. This is why MacHive is distributed as a direct-download `.app` rather than through the Mac App Store.
+3. **Heterogeneous clusters are supported:** Each Mac in the cluster can have a different amount of RAM and a different M-series chip. MacHive adds the RAM together and shows each Mac's chip and RAM in the peer list.
+4. **Approve login item:** If you enable **Launch MacHive at login**, go to **System Settings → General → Login Items** and make sure MacHive is allowed.
+5. **Network permission:** The first time MacHive runs, macOS may ask to allow local network access. Click **Allow**.
 
 ## Troubleshooting
 
