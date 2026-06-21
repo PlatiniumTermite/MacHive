@@ -66,12 +66,14 @@ struct MenuBarView: View {
                     Circle()
                         .fill(peer.isOnline ? Color.green : Color.gray)
                         .frame(width: 8, height: 8)
-                    Text(peer.name)
-                        .font(.body)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(peer.name)
+                            .font(.body)
+                        Text("\(peer.chip) · \(peer.ramGB) GB")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     Spacer()
-                    Text("\(peer.ramGB) GB")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 6)
