@@ -6,6 +6,8 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - MacHive
+    resources:
+      - install-deps.sh
     dependencies:
       - sdk: AppKit.framework
       - sdk: Foundation.framework

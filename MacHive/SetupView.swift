@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct SetupView: View {
     @StateObject private var installer = DependencyInstaller()
@@ -37,11 +38,28 @@ struct SetupView: View {
                     .font(.callout)
                     .foregroundColor(.red)
                     .frame(width: 280)
+                    .multilineTextAlignment(.center)
+
+                    if let suggestion = error.recoverySuggestion {
+                        Text(suggestion)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 280)
+                            .multilineTextAlignment(.center)
+                    }
 
                     Button("Try Again") {
                         installer.startInstallation()
                     }
                     .buttonStyle(.borderedProminent)
+
+                    Button("Copy Manual Command") {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(installer.manualInstallCommand, forType: .string)
+                    }
+                    .buttonStyle(.bordered)
+                    .font(.caption)
                 }
             }
         }

@@ -30,6 +30,21 @@ enum DependencyError: Error, LocalizedError, Equatable {
             return "Installation was cancelled."
         }
     }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .homebrewInstallFailed:
+            return "Open Terminal and run the install-deps.sh script included with MacHive."
+        case .pythonInstallFailed, .uvInstallFailed, .nodeInstallFailed:
+            return "Make sure Homebrew is installed and try again, or run install-deps.sh manually."
+        case .exoCloneFailed:
+            return "Check your internet connection and try again."
+        case .exoBuildFailed:
+            return "Node.js may be missing. Run install-deps.sh manually to fix it."
+        default:
+            return nil
+        }
+    }
 }
 
 @MainActor
@@ -44,6 +59,11 @@ final class DependencyInstaller: ObservableObject {
 
     var isComplete: Bool {
         Homebrew.isInstalled && Python.isInstalled && Exo.isInstalled
+    }
+
+    var manualInstallCommand: String {
+        let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"
+        return "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
     }
 
     func startInstallation() {
@@ -64,6 +84,10 @@ final class DependencyInstaller: ObservableObject {
         progress = 0
 
         do {
+            try Task.checkCancellation()
+            update(message: "Preparing installer...", progress: 0.02)
+            try copyManualScriptToApplicationSupport()
+
             try Task.checkCancellation()
             update(message: "Checking Homebrew...", progress: 0.05)
             if !Homebrew.isInstalled {
@@ -116,6 +140,26 @@ final class DependencyInstaller: ObservableObject {
     private func update(message: String, progress: Double) {
         self.message = message
         self.progress = progress
+    }
+
+    private func copyManualScriptToApplicationSupport() throws {
+        let fm = FileManager.default
+        let destDir = "\(NSHomeDirectory())/Library/Application Support/MacHive"
+        let destPath = "\(destDir)/install-deps.sh"
+
+        try? fm.createDirectory(atPath: destDir, withIntermediateDirectories: true, attributes: nil)
+
+        if fm.fileExists(atPath: destPath) {
+            return
+        }
+
+        guard let bundlePath = Bundle.main.path(forResource: "install-deps", ofType: "sh") else {
+            return
+        }
+
+        try? fm.removeItem(atPath: destPath)
+        try fm.copyItem(atPath: bundlePath, toPath: destPath)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destPath)
     }
 }
 
