@@ -13,6 +13,10 @@ final class ExoManager: ObservableObject {
 
     private var process: Process?
     private var statusTimer: Timer?
+    private var restartAttempts: Int = 0
+    private let maxRestartAttempts: Int = 3
+    private var recentLogs: [String] = []
+    private let maxLogLines: Int = 100
     private let exoDirectory = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
 
     var dashboardURL: URL {
@@ -45,18 +49,22 @@ final class ExoManager: ObservableObject {
         task.standardOutput = stdoutPipe
         task.standardError = stderrPipe
 
-        stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
+        stdoutPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             if let text = String(data: data, encoding: .utf8), !text.isEmpty {
                 NSLog("[exo stdout] \(text)")
+                Task { @MainActor [weak self] in
+                    self?.appendLog("[stdout] \(text)")
+                }
             }
         }
 
-        stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+        stderrPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             if let text = String(data: data, encoding: .utf8), !text.isEmpty {
                 NSLog("[exo stderr] \(text)")
                 Task { @MainActor [weak self] in
+                    self?.appendLog("[stderr] \(text)")
                     if text.lowercased().contains("error") {
                         self?.lastError = text
                     }
@@ -66,10 +74,21 @@ final class ExoManager: ObservableObject {
 
         task.terminationHandler = { [weak self] task in
             Task { @MainActor [weak self] in
-                self?.isRunning = false
-                self?.process = nil
-                if task.terminationStatus != 0, self?.lastError == nil {
-                    self?.lastError = "exo exited unexpectedly (code \(task.terminationStatus))."
+                guard let self = self else { return }
+                self.process = nil
+                self.isRunning = false
+                if task.terminationStatus != 0, self.lastError == nil {
+                    self.lastError = "exo exited unexpectedly (code \(task.terminationStatus))."
+                }
+                if self.restartAttempts < self.maxRestartAttempts {
+                    self.restartAttempts += 1
+                    let delay = Double(self.restartAttempts) * 2.0
+                    self.lastError = (self.lastError ?? "") + " Retrying in \(Int(delay))s... (\(self.restartAttempts)/\(self.maxRestartAttempts))"
+                    DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
+                        Task { @MainActor [weak self] in
+                            self?.start()
+                        }
+                    }
                 }
             }
         }
@@ -77,6 +96,7 @@ final class ExoManager: ObservableObject {
         do {
             try task.run()
             process = task
+            restartAttempts = 0
             startPolling()
         } catch {
             lastError = "Failed to start exo: \(error.localizedDescription)"
@@ -86,6 +106,7 @@ final class ExoManager: ObservableObject {
     }
 
     func stop() {
+        restartAttempts = maxRestartAttempts
         statusTimer?.invalidate()
         statusTimer = nil
         process?.terminate()
@@ -107,6 +128,20 @@ final class ExoManager: ObservableObject {
 
     func openChat() {
         NSWorkspace.shared.open(dashboardURL)
+    }
+
+    func copyLogsToPasteboard() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        let text = recentLogs.joined(separator: "\n")
+        pasteboard.setString(text, forType: .string)
+    }
+
+    private func appendLog(_ line: String) {
+        recentLogs.append(line)
+        if recentLogs.count > maxLogLines {
+            recentLogs.removeFirst(recentLogs.count - maxLogLines)
+        }
     }
 
     private func startPolling() {

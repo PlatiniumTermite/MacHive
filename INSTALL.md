@@ -143,6 +143,8 @@ brew reinstall node
 ### Cluster starts but the chat page does not load
 
 - Wait 10–30 seconds for exo to fully initialize.
+- MacHive automatically retries starting exo up to 3 times if it exits unexpectedly.
+- Click **Copy exo Logs** to copy the recent exo output to the clipboard, then paste it into a GitHub issue.
 - Make sure `http://localhost:52415` is not blocked by another service.
 - Click **Stop Cluster** and then **Start AI Cluster** again.
 

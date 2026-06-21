@@ -203,11 +203,19 @@ struct MenuBarView: View {
                 Spacer()
             }
 
-            Button("Refresh Peers") {
-                discovery.refresh()
+            HStack {
+                Button("Refresh Peers") {
+                    discovery.refresh()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+
+                Button("Copy exo Logs") {
+                    exo.copyLogsToPasteboard()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
             }
-            .font(.caption)
-            .buttonStyle(.bordered)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
