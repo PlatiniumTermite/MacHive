@@ -14,8 +14,11 @@ final class PeerDiscovery: ObservableObject {
     private let updateQueue = DispatchQueue(label: "com.machive.peerdiscovery", qos: .utility)
 
     @Published var peers: [Peer] = []
+    @Published var error: String? = nil
+    @Published var isBrowsing: Bool = false
 
     func start() {
+        error = nil
         startAdvertising()
         startBrowsing()
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.cleanupInterval, repeats: true) { [weak self] _ in
@@ -30,12 +33,18 @@ final class PeerDiscovery: ObservableObject {
         browser = nil
         cleanupTimer?.invalidate()
         cleanupTimer = nil
+        isBrowsing = false
         updateQueue.async { [weak self] in
             self?.discovered.removeAll()
             DispatchQueue.main.async { [weak self] in
                 self?.peers.removeAll()
             }
         }
+    }
+
+    func refresh() {
+        stop()
+        start()
     }
 
     private func startAdvertising() {
@@ -85,10 +94,25 @@ final class PeerDiscovery: ObservableObject {
     private func startBrowsing() {
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
+        parameters.allowLocalEndpointReuse = true
+
         browser = NWBrowser(for: .bonjour(type: PeerDiscovery.serviceType, domain: PeerDiscovery.domain), using: parameters)
-        browser?.stateUpdateHandler = { state in
-            if case .failed(let error) = state {
-                NSLog("MacHive: browser failed: \(error.localizedDescription)")
+        browser?.stateUpdateHandler = { [weak self] state in
+            DispatchQueue.main.async { [weak self] in
+                switch state {
+                case .ready:
+                    self?.isBrowsing = true
+                    self?.error = nil
+                case .failed(let error):
+                    self?.isBrowsing = false
+                    let msg = "Peer discovery failed: \(error.localizedDescription)"
+                    self?.error = msg
+                    NSLog("MacHive: \(msg)")
+                case .cancelled:
+                    self?.isBrowsing = false
+                default:
+                    break
+                }
             }
         }
 

@@ -33,12 +33,11 @@ final class ExoManager: ObservableObject {
         let task = Process()
         task.launchPath = "/bin/zsh"
 
-        let command = "cd \"\(exoDirectory)\" && uv run exo"
+        let command = "cd \"\(exoDirectory)\" && uv run exo --namespace machive"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        env["EXO_ZENOH_NAMESPACE"] = "machive"
         task.environment = env
 
         let stdoutPipe = Pipe()

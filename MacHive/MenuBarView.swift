@@ -61,22 +61,50 @@ struct MenuBarView: View {
 
     private var peerList: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(state.peers) { peer in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(peer.isOnline ? Color.green : Color.gray)
-                        .frame(width: 8, height: 8)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(peer.name)
-                            .font(.body)
-                        Text("\(peer.chip) · \(peer.ramGB) GB")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
+            if let error = discovery.error {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text(error)
                 }
+                .font(.caption)
+                .foregroundColor(.red)
                 .padding(.horizontal)
                 .padding(.vertical, 6)
+            }
+
+            if state.peers.isEmpty {
+                HStack(spacing: 6) {
+                    if discovery.isBrowsing {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Searching for Macs on this network...")
+                    } else {
+                        Image(systemName: "magnifyingglass")
+                        Text("No Macs found. Make sure MacHive is running on the other Macs and they are on the same WiFi.")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+            } else {
+                ForEach(state.peers) { peer in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(peer.isOnline ? Color.green : Color.gray)
+                            .frame(width: 8, height: 8)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(peer.name)
+                                .font(.body)
+                            Text("\(peer.chip) · \(peer.ramGB) GB")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                }
             }
         }
         .padding(.vertical, 8)
@@ -165,13 +193,21 @@ struct MenuBarView: View {
     }
 
     private var settingsSection: some View {
-        HStack {
-            Toggle("Launch MacHive at login", isOn: $state.launchAtLogin)
-                .font(.callout)
-                .onChange(of: state.launchAtLogin) { value in
-                    LaunchAtLoginManager.setEnabled(value)
-                }
-            Spacer()
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Toggle("Launch MacHive at login", isOn: $state.launchAtLogin)
+                    .font(.callout)
+                    .onChange(of: state.launchAtLogin) { value in
+                        LaunchAtLoginManager.setEnabled(value)
+                    }
+                Spacer()
+            }
+
+            Button("Refresh Peers") {
+                discovery.refresh()
+            }
+            .font(.caption)
+            .buttonStyle(.bordered)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
