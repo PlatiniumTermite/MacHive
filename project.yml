@@ -1,0 +1,44 @@
+name: MacHive
+targets:
+  MacHive:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - MacHive
+    dependencies:
+      - sdk: AppKit.framework
+      - sdk: Foundation.framework
+      - sdk: Network.framework
+      - sdk: ServiceManagement.framework
+      - sdk: SwiftUI.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.machive.MacHive
+        MARKETING_VERSION: 1.0.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.10"
+        INFOPLIST_FILE: MacHive/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MacHive/MacHive.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    info:
+      path: MacHive/Info.plist
+      properties:
+        CFBundleDisplayName: MacHive
+        CFBundleExecutable: MacHive
+        CFBundleIdentifier: com.machive.MacHive
+        LSMinimumSystemVersion: "13.0"
+        NSBonjourServices:
+          - _machive._tcp
+        NSLocalNetworkUsageDescription: "MacHive uses the local network to discover other Macs in your cluster."
+        LSUIElement: true
+    entitlements:
+      path: MacHive/MacHive.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.server: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected-read-write: true

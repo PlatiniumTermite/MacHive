@@ -1,0 +1,32 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+DerivedData/
+.build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Swift Package Manager
+Package.resolved
+.swiftpm/
+
+# User-specific Xcode data
+MacHive.xcodeproj/xcuserdata/
+MacHive.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Derived data
+DerivedData/
+
+# App-specific
+*.app
+*.dmg
+
+# Logs
+*.log
