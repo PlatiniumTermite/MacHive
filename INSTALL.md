@@ -133,12 +133,14 @@ brew reinstall node
 
 ### Other Macs do not appear in the peer list
 
-1. Make sure all Macs are on the **same WiFi network**. Different VLANs or guest networks can block Bonjour.
-2. Make sure MacHive is running on each Mac and first-time setup has finished.
-3. Click **Refresh Peers** in the MacHive menu bar.
-4. Check that macOS firewall is not blocking Bonjour or local network access. Go to **System Settings → Network → Firewall** and disable it temporarily to test.
-5. Make sure the namespace is the same on all Macs. MacHive uses `--namespace machive` by default. If you changed it, all Macs must use the same value.
-6. Restart MacHive on each Mac.
+1. Click **Diagnostics** in the MacHive menu bar. It checks macOS version, app location, chip, exo installation, network, and firewall.
+2. Make sure all Macs are on the **same WiFi network**. Different VLANs or guest networks can block Bonjour.
+3. MacHive uses both **Bonjour and UDP broadcast** to find peers, so it still works on many networks that block Bonjour alone.
+4. Make sure MacHive is running on each Mac and first-time setup has finished.
+5. Click **Refresh Peers** in the MacHive menu bar.
+6. Check that macOS firewall is not blocking Bonjour or local network access. Go to **System Settings → Network → Firewall** and disable it temporarily to test.
+7. Make sure the namespace is the same on all Macs. MacHive uses `--namespace machive` by default. If you changed it, all Macs must use the same value.
+8. Restart MacHive on each Mac.
 
 ### Cluster starts but the chat page does not load
 

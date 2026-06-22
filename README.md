@@ -40,7 +40,7 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
 1. Launch MacHive on every Mac you want in the cluster.
 2. Wait for the first-time setup to finish on each Mac. It will install Homebrew, Python 3.12, uv, Node.js, and the exo source automatically.
-3. Click the hive icon in the menu bar. Within a few seconds all Macs on the same network should appear, each showing its chip and RAM. They must be on the same WiFi network and use the same namespace (`machive` by default) to see each other.
+3. Click the hive icon in the menu bar. MacHive uses both **Bonjour and UDP broadcast** to find peers, so it works on most home networks. Within a few seconds all Macs on the same network should appear, each showing its chip and RAM. If they do not appear, click **Diagnostics** to check common issues.
 4. Select a model from the dropdown. Macs can have different RAM sizes; MacHive adds them together and disables any model that would not fit in the combined total.
 5. Click **Start AI Cluster**. Once the status shows *Running*, the button becomes **Open Chat** and opens `http://localhost:52415` in your default browser.
 6. Choose the same model in the exo chat UI and start chatting.

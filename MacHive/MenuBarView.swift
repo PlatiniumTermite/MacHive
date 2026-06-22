@@ -81,10 +81,10 @@ struct MenuBarView: View {
                     if discovery.isBrowsing {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Searching for Macs on this network...")
+                        Text("Searching for Macs (Bonjour + UDP)...")
                     } else {
                         Image(systemName: "magnifyingglass")
-                        Text("No Macs found. Make sure MacHive is running on the other Macs and they are on the same WiFi.")
+                        Text("No Macs found. Make sure MacHive is running on the other Macs and they are on the same WiFi. Click Diagnostics for help.")
                     }
                 }
                 .font(.caption)
