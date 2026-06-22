@@ -5,6 +5,7 @@ struct MenuBarView: View {
     @StateObject private var discovery = PeerDiscovery()
     @StateObject private var exo = ExoManager()
     @State private var showingStopConfirmation = false
+    @State private var showingDiagnostics = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -37,6 +38,9 @@ struct MenuBarView: View {
             if let error = error {
                 state.status = .error(error)
             }
+        }
+        .sheet(isPresented: $showingDiagnostics) {
+            DiagnosticsView(exo: exo)
         }
     }
 
@@ -206,6 +210,12 @@ struct MenuBarView: View {
             HStack {
                 Button("Refresh Peers") {
                     discovery.refresh()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+
+                Button("Diagnostics") {
+                    showingDiagnostics = true
                 }
                 .font(.caption)
                 .buttonStyle(.bordered)

@@ -185,7 +185,7 @@ private extension Process {
     }
 }
 
-private extension ExoManager {
+extension ExoManager {
     static var exoIsInstalled: Bool {
         let fm = FileManager.default
         let base = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"

@@ -16,6 +16,7 @@
 		7FE062531A56ADA4D7218A5B /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E265E09B4CD4D7F6F41664BF /* SetupView.swift */; };
 		8E6390BC6784AAA1E20F85DD /* ClusterState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFB90FDBA341461CC6160CD3 /* ClusterState.swift */; };
 		8EE682A9EF708121A961D735 /* PeerDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3214F7D831B80C327D870E3B /* PeerDiscovery.swift */; };
+		994DD30078AAEF90AD44FC0D /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 863CD9BE36E1FB9FDA87D9E5 /* DiagnosticsView.swift */; };
 		A1074D5915880C4701649E88 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 488E5ACD40B9ACC4F939816D /* Network.framework */; };
 		A26EA8274E937500A1256124 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F50E7B1A355590E8A5F9D7E /* SwiftUI.framework */; };
 		B6E7CE11DCD0944EA5F1A8DF /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 369A2EBE00CC23F191FA5B17 /* ServiceManagement.framework */; };
@@ -31,6 +32,7 @@
 		6F50E7B1A355590E8A5F9D7E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		7AD6456DE53CFAD6D8ECBD7D /* MacHive.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacHive.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CFB208E6151B932A3207D18 /* MacHiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacHiveApp.swift; sourceTree = "<group>"; };
+		863CD9BE36E1FB9FDA87D9E5 /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
 		8B89796A6FFCDE94C8C234A5 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		A5BB57A82D802C29E34E4823 /* ExoManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExoManager.swift; sourceTree = "<group>"; };
 		C15467D9B9589906FFD04C49 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -71,6 +73,7 @@
 				C5CC69431DD9E81BC3B086FA /* Assets.xcassets */,
 				CFB90FDBA341461CC6160CD3 /* ClusterState.swift */,
 				2C472824F7D35856C6C583D2 /* DependencyInstaller.swift */,
+				863CD9BE36E1FB9FDA87D9E5 /* DiagnosticsView.swift */,
 				A5BB57A82D802C29E34E4823 /* ExoManager.swift */,
 				C15467D9B9589906FFD04C49 /* Info.plist */,
 				6C923F9DD157D64031ABE546 /* MacHive.entitlements */,
@@ -173,6 +176,7 @@
 			files = (
 				8E6390BC6784AAA1E20F85DD /* ClusterState.swift in Sources */,
 				0C3628A062ED3B734B6B60D1 /* DependencyInstaller.swift in Sources */,
+				994DD30078AAEF90AD44FC0D /* DiagnosticsView.swift in Sources */,
 				55E8904689CA60BACE8A63A0 /* ExoManager.swift in Sources */,
 				3EA213E9A4B65CE9C8ABE271 /* MacHiveApp.swift in Sources */,
 				25F3D7ABD9C931D2C1507869 /* MenuBarView.swift in Sources */,

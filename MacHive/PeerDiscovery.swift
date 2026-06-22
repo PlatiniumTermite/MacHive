@@ -6,10 +6,15 @@ final class PeerDiscovery: ObservableObject {
     static let domain = "local."
     static let cleanupInterval: TimeInterval = 2.0
     static let timeout: TimeInterval = 5.0
+    static let udpPort: UInt16 = 52416
+    static let broadcastInterval: TimeInterval = 2.0
 
     private var advertiser: NWListener?
     private var browser: NWBrowser?
     private var cleanupTimer: Timer?
+    private var udpBroadcastTimer: Timer?
+    private var udpListener: NWListener?
+    private var udpConnection: NWConnection?
     private var discovered: [String: Peer] = [:]
     private let updateQueue = DispatchQueue(label: "com.machive.peerdiscovery", qos: .utility)
 
@@ -21,6 +26,7 @@ final class PeerDiscovery: ObservableObject {
         error = nil
         startAdvertising()
         startBrowsing()
+        startUDPFallback()
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.cleanupInterval, repeats: true) { [weak self] _ in
             self?.purgeStalePeers()
         }
@@ -31,6 +37,12 @@ final class PeerDiscovery: ObservableObject {
         advertiser = nil
         browser?.cancel()
         browser = nil
+        udpListener?.cancel()
+        udpListener = nil
+        udpConnection?.cancel()
+        udpConnection = nil
+        udpBroadcastTimer?.invalidate()
+        udpBroadcastTimer = nil
         cleanupTimer?.invalidate()
         cleanupTimer = nil
         isBrowsing = false
@@ -122,6 +134,96 @@ final class PeerDiscovery: ObservableObject {
             }
         }
         browser?.start(queue: .global())
+    }
+
+    private func startUDPFallback() {
+        let parameters = NWParameters.udp
+        parameters.includePeerToPeer = true
+        parameters.allowLocalEndpointReuse = true
+
+        guard let port = NWEndpoint.Port(rawValue: PeerDiscovery.udpPort) else {
+            NSLog("MacHive: invalid UDP port")
+            return
+        }
+
+        do {
+            udpListener = try NWListener(using: parameters, on: port)
+        } catch {
+            NSLog("MacHive: UDP listener failed: \(error.localizedDescription)")
+            return
+        }
+
+        udpListener?.newConnectionHandler = { [weak self] connection in
+            connection.start(queue: .global())
+            connection.receiveMessage { [weak self] content, _, _, error in
+                if let data = content, let payload = try? JSONSerialization.jsonObject(with: data) as? [String: String] {
+                    self?.updateQueue.async { [weak self] in
+                        self?.handleUDP(payload: payload)
+                    }
+                }
+                if error == nil {
+                    self?.udpListen(connection: connection)
+                }
+            }
+        }
+        udpListener?.start(queue: .global())
+
+        guard let broadcastIP = IPv4Address("255.255.255.255") else {
+            NSLog("MacHive: invalid broadcast IP")
+            return
+        }
+        let endpoint = NWEndpoint.hostPort(host: .ipv4(broadcastIP), port: port)
+        udpConnection = NWConnection(to: endpoint, using: parameters)
+        udpConnection?.start(queue: .global())
+
+        udpBroadcastTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.broadcastInterval, repeats: true) { [weak self] _ in
+            self?.sendUDPBroadcast()
+        }
+        sendUDPBroadcast()
+    }
+
+    private func udpListen(connection: NWConnection) {
+        connection.receiveMessage { [weak self] content, _, _, error in
+            if let data = content, let payload = try? JSONSerialization.jsonObject(with: data) as? [String: String] {
+                self?.updateQueue.async { [weak self] in
+                    self?.handleUDP(payload: payload)
+                }
+            }
+            if error == nil {
+                self?.udpListen(connection: connection)
+            }
+        }
+    }
+
+    private func sendUDPBroadcast() {
+        let payload: [String: String] = [
+            "name": Host.current().localizedName ?? "MacHive",
+            "ram": "\(SystemInfo.totalRAMGB)",
+            "chip": SystemInfo.chipModel,
+            "status": "online"
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        udpConnection?.send(content: data, completion: .contentProcessed { error in
+            if let error = error {
+                NSLog("MacHive: UDP broadcast failed: \(error.localizedDescription)")
+            }
+        })
+    }
+
+    private func handleUDP(payload: [String: String]) {
+        let name = payload["name"] ?? "Unknown Mac"
+        let peer = Peer(
+            id: name,
+            name: name,
+            ramGB: parseInt(payload["ram"] ?? "0"),
+            chip: payload["chip"] ?? "Apple Silicon",
+            isOnline: true,
+            lastSeen: Date()
+        )
+        discovered[name] = peer
+        DispatchQueue.main.async { [weak self] in
+            self?.updatePeers()
+        }
     }
 
     private func handle(results: Set<NWBrowser.Result>) {
