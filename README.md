@@ -36,6 +36,14 @@ open MacHive.xcodeproj
 
 Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
+### Release a new version
+
+1. Update `MARKETING_VERSION` in `project.yml` and the version string in `README.md` if needed.
+2. Build an archive: in Xcode select **Product → Archive**.
+3. In the Organizer, click **Distribute App → Copy App**.
+4. Upload the exported `MacHive.app` to a GitHub Release.
+5. Attach `install-deps.sh` to the release for users who need the manual fallback.
+
 ## How to use
 
 1. Launch MacHive on every Mac you want in the cluster.
