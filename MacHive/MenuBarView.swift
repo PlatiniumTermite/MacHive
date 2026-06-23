@@ -84,7 +84,7 @@ struct MenuBarView: View {
                         Text("Searching for Macs (Bonjour + UDP)...")
                     } else {
                         Image(systemName: "magnifyingglass")
-                        Text("No Macs found. Make sure MacHive is running on the other Macs and they are on the same WiFi. Click Diagnostics for help.")
+                        Text("No other Macs found. You can still use MacHive on this Mac alone — it will run as a single-node cluster.")
                     }
                 }
                 .font(.caption)

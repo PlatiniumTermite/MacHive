@@ -6,6 +6,8 @@ struct DiagnosticsView: View {
     @ObservedObject var exo: ExoManager
     @State private var results: [DiagnosticResult] = []
     @State private var isRunning = false
+    @State private var testingExo = false
+    @State private var testResult: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -51,6 +53,20 @@ struct DiagnosticsView: View {
             }
             .buttonStyle(.borderedProminent)
             .frame(maxWidth: .infinity)
+
+            if let testResult = testResult {
+                Text(testResult)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button("Test exo") {
+                testExo()
+            }
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .disabled(testingExo)
 
             Button("Copy Results") {
                 let pasteboard = NSPasteboard.general
@@ -118,6 +134,18 @@ struct DiagnosticsView: View {
             )
         ]
         isRunning = false
+    }
+
+    private func testExo() {
+        testingExo = true
+        testResult = "Running exo test..."
+        Task {
+            let result = await exo.testExoInstallation()
+            await MainActor.run {
+                testResult = result
+                testingExo = false
+            }
+        }
     }
 
     private static var isInApplications: Bool {

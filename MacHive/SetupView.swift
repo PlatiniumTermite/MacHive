@@ -17,7 +17,7 @@ struct SetupView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            VStack(spacing: 8) {
+            VStack(spacing: 12) {
                 ProgressView(value: installer.progress, total: 1.0)
                     .progressViewStyle(.linear)
                     .frame(width: 280)
@@ -27,6 +27,20 @@ struct SetupView: View {
                     .foregroundStyle(.secondary)
                     .frame(width: 280)
                     .multilineTextAlignment(.center)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(SetupStep.allCases, id: \.self) { step in
+                        HStack(spacing: 6) {
+                            Image(systemName: installer.completedSteps.contains(step) ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(installer.completedSteps.contains(step) ? .green : .secondary)
+                            Text(step.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                    }
+                }
+                .frame(width: 200)
             }
 
             if let error = installer.error {

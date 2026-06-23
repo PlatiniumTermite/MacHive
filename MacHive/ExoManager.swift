@@ -137,6 +137,33 @@ final class ExoManager: ObservableObject {
         pasteboard.setString(text, forType: .string)
     }
 
+    func testExoInstallation() async -> String {
+        let task = Process()
+        task.launchPath = "/bin/zsh"
+        let command = "cd \"\(exoDirectory)\" && uv run exo --help"
+        task.arguments = ["-c", command]
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        task.environment = env
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+        do {
+            try task.run()
+            task.waitUntilExit()
+            let data = pipe.fileHandleForReading.availableData
+            let output = String(data: data, encoding: .utf8) ?? ""
+            if task.terminationStatus == 0 {
+                return "exo responded successfully."
+            } else {
+                return "exo test failed (code \(task.terminationStatus)): \(output)"
+            }
+        } catch {
+            return "Could not run exo test: \(error.localizedDescription)"
+        }
+    }
+
     private func appendLog(_ line: String) {
         recentLogs.append(line)
         if recentLogs.count > maxLogLines {

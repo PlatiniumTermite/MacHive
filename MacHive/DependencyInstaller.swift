@@ -1,5 +1,13 @@
 import Foundation
 
+enum SetupStep: String, CaseIterable {
+    case homebrew = "Homebrew"
+    case python = "Python 3.12"
+    case uv = "uv"
+    case node = "Node.js"
+    case exo = "exo source"
+}
+
 enum DependencyError: Error, LocalizedError, Equatable {
     case homebrewInstallFailed(String)
     case pythonInstallFailed(String)
@@ -53,6 +61,7 @@ final class DependencyInstaller: ObservableObject {
     @Published var message: String = ""
     @Published var error: DependencyError? = nil
     @Published var isRunning: Bool = false
+    @Published var completedSteps: Set<SetupStep> = []
 
     private var currentTask: Task<Void, Never>?
     private let serialQueue = DispatchQueue(label: "com.machive.installer")
@@ -68,6 +77,7 @@ final class DependencyInstaller: ObservableObject {
 
     func startInstallation() {
         currentTask?.cancel()
+        completedSteps.removeAll()
         currentTask = Task { @MainActor in
             await performInstallation()
         }
@@ -94,6 +104,7 @@ final class DependencyInstaller: ObservableObject {
                 update(message: "Installing Homebrew...", progress: 0.10)
                 try await Homebrew.install()
             }
+            completedSteps.insert(.homebrew)
 
             try Task.checkCancellation()
             update(message: "Checking Python 3.12...", progress: 0.20)
@@ -101,6 +112,7 @@ final class DependencyInstaller: ObservableObject {
                 update(message: "Installing Python 3.12...", progress: 0.25)
                 try await Python.install()
             }
+            completedSteps.insert(.python)
 
             try Task.checkCancellation()
             update(message: "Checking uv...", progress: 0.35)
@@ -108,6 +120,7 @@ final class DependencyInstaller: ObservableObject {
                 update(message: "Installing uv...", progress: 0.40)
                 try await Uv.install()
             }
+            completedSteps.insert(.uv)
 
             try Task.checkCancellation()
             update(message: "Checking Node.js...", progress: 0.50)
@@ -115,6 +128,7 @@ final class DependencyInstaller: ObservableObject {
                 update(message: "Installing Node.js...", progress: 0.55)
                 try await Node.install()
             }
+            completedSteps.insert(.node)
 
             try Task.checkCancellation()
             update(message: "Checking exo...", progress: 0.70)
@@ -124,6 +138,7 @@ final class DependencyInstaller: ObservableObject {
                 update(message: "Building exo dashboard...", progress: 0.85)
                 try await Exo.buildDashboard()
             }
+            completedSteps.insert(.exo)
 
             try Task.checkCancellation()
             update(message: "Finishing setup...", progress: 1.0)
