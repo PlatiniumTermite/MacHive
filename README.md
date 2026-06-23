@@ -10,6 +10,15 @@ MacHive currently supports **AI model inference only**, via exo. More features m
 
 This first release intentionally does **not** include: Blender rendering, video encoding, model training, or task queues.
 
+## Cost
+
+**MacHive is completely free.** No API keys, no subscriptions, no hidden costs.
+
+- All AI models run **locally on your Macs**, not in the cloud
+- Uses free, open-source models (Llama 3, Mistral, Qwen)
+- No data is sent to external servers
+- Internet is only needed once to download model weights (a few GB per model)
+
 ## Requirements
 
 - macOS 13 or later
