@@ -99,6 +99,32 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
 **Note:** The peer list in MacHive's menu bar shows which Macs are running MacHive. The actual AI cluster formation happens inside exo using libp2p. Check the exo logs (click "Copy exo Logs") to verify peers are connected.
 
+## Troubleshooting Clustering
+
+### How to verify clustering is working:
+
+1. **Start exo on BOTH Macs** - Click "Start AI Cluster" on every Mac
+2. **Check the logs** - Click "Copy exo Logs" and look for:
+   ```
+   Connected to peer: 12D3KooW...
+   Partition assigned: layers 0-20
+   ```
+3. **Monitor CPU usage** - Open Activity Monitor on both Macs, look for `exo` process
+4. **Ask a question** - Both Macs should show 20-40% CPU usage simultaneously
+
+### If clustering doesn't work:
+
+**Symptom:** Only one Mac gets hot when asking questions
+
+**Fixes:**
+1. **Check same WiFi** - All Macs must be on the same WiFi network (not Ethernet + WiFi mix)
+2. **Disable firewall** - Go to System Settings → Network → Firewall → Turn Off (or add MacHive to allowed apps)
+3. **Check logs for errors** - Click "Copy exo Logs" and look for connection errors
+4. **Restart both Macs** - Sometimes mDNS cache needs clearing
+5. **Use same exo version** - Make sure all Macs installed MacHive at the same time
+
+**Still not working?** Open an issue on GitHub with logs from both Macs.
+
 ## Known limitations
 
 - MacHive disables the macOS app sandbox because it must install Homebrew, Python, uv, Node.js, and the exo source outside the app container, and run `uv run exo` as a subprocess. This means MacHive is distributed as a direct-download `.app`, not through the Mac App Store.

@@ -10,6 +10,8 @@ final class ExoManager: ObservableObject {
         }
     }
     @Published var lastError: String? = nil
+    @Published var exoPeerCount: Int = 0
+    @Published var exoPeerStatus: String = "Not started"
 
     private var process: Process?
     private var statusTimer: Timer?
@@ -26,6 +28,14 @@ final class ExoManager: ObservableObject {
     func start() {
         guard !isRunning else { return }
         lastError = nil
+        
+        // Pre-flight network checks
+        let networkIssues = NetworkHelper.checkNetworkRequirements()
+        if !networkIssues.isEmpty {
+            NSLog("MacHive: Network warnings: \(networkIssues.joined(separator: "; "))")
+            // Don't block startup, just log warnings
+        }
+        
         isRunning = true
 
         guard ExoManager.exoIsInstalled else {
@@ -37,12 +47,12 @@ final class ExoManager: ObservableObject {
         let task = Process()
         task.launchPath = "/bin/zsh"
 
-        let command = "cd \"\(exoDirectory)\" && uv run exo --namespace machive"
+        let command = "cd \"\(exoDirectory)\" && uv run exo --namespace machive --listen-addr 0.0.0.0"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        env["RUST_LOG"] = "debug"
+        env["RUST_LOG"] = "info,libp2p=debug,exo=debug"
         env["LIBP2P_FORCE_PNET"] = "0"
         task.environment = env
 

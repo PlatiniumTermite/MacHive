@@ -6,6 +6,7 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - MacHive
+      - MacHive/NetworkHelper.swift
     resources:
       - install-deps.sh
     dependencies:
