@@ -42,6 +42,8 @@ final class ExoManager: ObservableObject {
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        env["RUST_LOG"] = "debug"
+        env["LIBP2P_FORCE_PNET"] = "0"
         task.environment = env
 
         let stdoutPipe = Pipe()

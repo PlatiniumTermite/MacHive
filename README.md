@@ -55,14 +55,17 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
 ## How to use
 
-1. Launch MacHive on every Mac you want in the cluster.
+1. Launch MacHive on **every Mac** you want in the cluster.
 2. Wait for the first-time setup to finish on each Mac. The setup window shows a live checklist for Homebrew, Python 3.12, uv, Node.js, and the exo source, so you always know exactly what is happening.
-3. Click the hive icon in the menu bar. MacHive uses both **Bonjour and UDP broadcast** to find peers, so it works on most home networks. Within a few seconds all Macs on the same network should appear, each showing its chip and RAM. If no other Mac is found, MacHive still works on this Mac as a single-node cluster.
-4. If peers do not appear, click **Diagnostics** to check common issues, then click **Test exo** to verify the installation can run a simple command.
+3. Click the hive icon in the menu bar. MacHive uses both **Bonjour and UDP broadcast** to find peers for the UI display, showing each Mac's chip and RAM. If no other Mac is found, MacHive still works on this Mac as a single-node cluster.
+4. If peers do not appear in the menu bar, click **Diagnostics** to check common issues, then click **Test exo** to verify the installation can run a simple command.
 5. Select a model from the dropdown. Macs can have different RAM sizes; MacHive adds them together and disables any model that would not fit in the combined total.
-6. Click **Start AI Cluster**. Once the status shows *Running*, the button becomes **Open Chat** and opens `http://localhost:52415` in your default browser.
-7. Choose the same model in the exo chat UI and start chatting.
-8. Click **Stop Cluster** to stop the exo process on this Mac.
+6. **Important:** Click **Start AI Cluster** on **every Mac** in the cluster. exo uses its own libp2p mDNS discovery to find other exo instances running with the same namespace (`machive`). All Macs must be running exo simultaneously to form a cluster.
+7. Once the status shows *Running*, the button becomes **Open Chat** and opens `http://localhost:52415` in your default browser.
+8. Choose the same model in the exo chat UI and start chatting. You should see in the exo logs that multiple peers are connected.
+9. Click **Stop Cluster** to stop the exo process on this Mac.
+
+**Note:** The peer list in MacHive's menu bar shows which Macs are running MacHive. The actual AI cluster formation happens inside exo using libp2p. Check the exo logs (click "Copy exo Logs") to verify peers are connected.
 
 ## Known limitations
 
