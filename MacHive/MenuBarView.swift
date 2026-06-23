@@ -45,19 +45,29 @@ struct MenuBarView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("MacHive")
-                .font(.title3)
-                .fontWeight(.bold)
+        HStack(spacing: 12) {
+            Image(systemName: "hexagon.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 32, height: 32)
+                .foregroundColor(.accentColor)
 
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(state.status == .running || state.status == .ready ? Color.green : Color.gray)
-                    .frame(width: 8, height: 8)
-                Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") found — \(state.combinedRAMGB) GB combined")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("MacHive")
+                    .font(.title3)
+                    .fontWeight(.bold)
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(state.status == .running || state.status == .ready ? Color.green : Color.gray)
+                        .frame(width: 8, height: 8)
+                    Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") · \(state.combinedRAMGB) GB")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
+
+            Spacer()
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
@@ -84,7 +94,7 @@ struct MenuBarView: View {
                         Text("Searching for Macs (Bonjour + UDP)...")
                     } else {
                         Image(systemName: "magnifyingglass")
-                        Text("No other Macs found. You can still use MacHive on this Mac alone — it will run as a single-node cluster.")
+                        Text("No other Macs found. You can still use MacHive on this Mac alone as a single-node cluster.")
                     }
                 }
                 .font(.caption)
@@ -92,15 +102,24 @@ struct MenuBarView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 6)
             } else {
+                Text("Macs in this cluster")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+
                 ForEach(state.peers) { peer in
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Circle()
                             .fill(peer.isOnline ? Color.green : Color.gray)
                             .frame(width: 8, height: 8)
+                            .shadow(color: peer.isOnline ? Color.green.opacity(0.4) : Color.clear, radius: 2, x: 0, y: 0)
+
                         VStack(alignment: .leading, spacing: 2) {
                             Text(peer.name)
                                 .font(.body)
-                            Text("\(peer.chip) · \(peer.ramGB) GB")
+                            Text("\(peer.chip) · \(peer.ramGB) GB RAM")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -108,7 +127,10 @@ struct MenuBarView: View {
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                    .transition(.opacity.combined(with: .scale))
                 }
+                .animation(.easeInOut(duration: 0.2), value: state.peers)
             }
         }
         .padding(.vertical, 8)
@@ -116,23 +138,31 @@ struct MenuBarView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Text("Model")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+
             Picker("Model:", selection: $state.selectedModel) {
                 ForEach(ExoModel.allCases) { model in
-                    Text(model.rawValue)
+                    Text("\(model.rawValue) (\(model.requiredRAMGB)GB)")
                         .tag(model)
-                        .disabled(!state.canRunModel(model))
                 }
             }
             .pickerStyle(.menu)
             .disabled(exo.isRunning)
 
             if !state.selectedModelFits {
-                Text("Needs \(state.selectedModel.requiredRAMGB)GB, you have \(state.combinedRAMGB)GB combined")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .help("This model requires more combined RAM than is currently available from online Macs.")
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.caption)
+                    Text("Needs \(state.selectedModel.requiredRAMGB)GB combined RAM · you have \(state.combinedRAMGB)GB")
+                        .font(.caption)
+                }
+                .foregroundColor(.red)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .help("This model requires more combined RAM than is currently available from online Macs.")
             }
 
             if exo.isRunning {
@@ -171,17 +201,24 @@ struct MenuBarView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 12)
+        .animation(.easeInOut(duration: 0.2), value: exo.isRunning)
     }
 
     private var statusFooter: some View {
-        HStack {
-            Text("Status:")
+        HStack(spacing: 8) {
+            Text("Status")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-            Text(state.status.display)
-                .font(.callout)
-                .foregroundStyle(statusColor)
             Spacer()
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+                Text(state.status.display)
+                    .font(.callout)
+                    .fontWeight(.medium)
+                    .foregroundStyle(statusColor)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
@@ -197,7 +234,7 @@ struct MenuBarView: View {
     }
 
     private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Toggle("Launch MacHive at login", isOn: $state.launchAtLogin)
                     .font(.callout)
@@ -207,25 +244,29 @@ struct MenuBarView: View {
                 Spacer()
             }
 
-            HStack {
+            HStack(spacing: 8) {
                 Button("Refresh Peers") {
                     discovery.refresh()
                 }
                 .font(.caption)
                 .buttonStyle(.bordered)
+                .controlSize(.small)
 
                 Button("Diagnostics") {
                     showingDiagnostics = true
                 }
                 .font(.caption)
                 .buttonStyle(.bordered)
+                .controlSize(.small)
 
                 Button("Copy exo Logs") {
                     exo.copyLogsToPasteboard()
                 }
                 .font(.caption)
                 .buttonStyle(.bordered)
+                .controlSize(.small)
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(.horizontal)
         .padding(.vertical, 10)

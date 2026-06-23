@@ -30,9 +30,12 @@ struct DiagnosticsView: View {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: result.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(result.passed ? .green : .red)
+                                .font(.callout)
+                                .animation(.easeInOut(duration: 0.2), value: result.passed)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(result.title)
-                                    .font(.body)
+                                    .font(.callout)
+                                    .fontWeight(.medium)
                                 if let detail = result.detail {
                                     Text(detail)
                                         .font(.caption)
@@ -43,23 +46,36 @@ struct DiagnosticsView: View {
                             }
                             Spacer()
                         }
+                        .padding(.vertical, 2)
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
                     }
+                    .animation(.easeInOut(duration: 0.2), value: results)
                 }
             }
             .frame(minHeight: 120)
+
+            if let testResult = testResult {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: testResult.contains("successfully") ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .foregroundColor(testResult.contains("successfully") ? .green : .orange)
+                    Text(testResult)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(8)
+            }
 
             Button("Run Checks Again") {
                 runChecks()
             }
             .buttonStyle(.borderedProminent)
             .frame(maxWidth: .infinity)
-
-            if let testResult = testResult {
-                Text(testResult)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .disabled(isRunning)
 
             Button("Test exo") {
                 testExo()
@@ -72,10 +88,15 @@ struct DiagnosticsView: View {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 let text = results.map { "\($0.passed ? "✅" : "❌") \($0.title)\($0.detail.map { ": \($0)" } ?? "")" }.joined(separator: "\n")
-                pasteboard.setString(text, forType: .string)
+                if let testResult = testResult {
+                    pasteboard.setString(text + "\n\nTest exo: \(testResult)", forType: .string)
+                } else {
+                    pasteboard.setString(text, forType: .string)
+                }
             }
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
+            .disabled(results.isEmpty)
         }
         .padding()
         .frame(width: 360)
@@ -186,7 +207,7 @@ struct DiagnosticsView: View {
     }
 }
 
-struct DiagnosticResult: Identifiable {
+struct DiagnosticResult: Identifiable, Equatable {
     let id = UUID()
     let title: String
     let passed: Bool

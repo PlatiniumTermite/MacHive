@@ -28,19 +28,33 @@ struct SetupView: View {
                     .frame(width: 280)
                     .multilineTextAlignment(.center)
 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 6) {
                     ForEach(SetupStep.allCases, id: \.self) { step in
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             Image(systemName: installer.completedSteps.contains(step) ? "checkmark.circle.fill" : "circle")
                                 .foregroundColor(installer.completedSteps.contains(step) ? .green : .secondary)
+                                .font(.callout)
+                                .animation(.easeInOut(duration: 0.2), value: installer.completedSteps.contains(step))
                             Text(step.rawValue)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .foregroundStyle(installer.completedSteps.contains(step) ? .primary : .secondary)
                             Spacer()
                         }
+                        .transition(.opacity)
                     }
                 }
                 .frame(width: 200)
+            }
+
+            if installer.isComplete && installer.error == nil {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Setup complete. MacHive is ready.")
+                        .font(.callout)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(.secondary)
             }
 
             if let error = installer.error {
