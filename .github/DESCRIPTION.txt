@@ -1,0 +1,1 @@
+Run Llama 3 70B across multiple Apple Silicon Macs. Distributed AI inference with zero configuration. Free, local, privacy-focused alternative to cloud APIs. SwiftUI menu bar app for macOS.

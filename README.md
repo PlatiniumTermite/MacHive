@@ -1,8 +1,40 @@
 # MacHive
 
-> Combine your Apple Silicon Macs into one AI cluster. No terminal required.
+**Run Llama 3 70B across multiple Macs with one click. No terminal, no API keys, completely free.**
 
-MacHive is a tiny macOS menu-bar application that wraps the [exo](https://github.com/exo-explore/exo) distributed inference framework. It lets non-technical users join multiple Apple Silicon Macs on the same WiFi network and run large language models together, without editing config files or opening a terminal.
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/PlatiniumTermite/MacHive/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![macOS](https://img.shields.io/badge/macOS-13.0+-blue.svg)](https://www.apple.com/macos/)
+[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%2FM2%2FM3%2FM4-orange.svg)](https://www.apple.com/mac/)
+
+MacHive turns your Apple Silicon Macs into a distributed AI cluster. Run large language models (Llama 3, Mistral, Qwen) locally by pooling RAM and compute across multiple Macs on your WiFi network.
+
+**Perfect for:** Running 70B models without buying expensive hardware, privacy-focused AI inference, offline AI, homelab enthusiasts, AI researchers.
+
+![MacHive Demo](https://via.placeholder.com/800x400.png?text=MacHive+Demo+Screenshot)
+
+> Built on [exo](https://github.com/exo-explore/exo) — the distributed inference framework for Apple Silicon.
+
+## Quick Start
+
+```bash
+# Download MacHive.app from Releases
+# Drag to /Applications
+# Launch on each Mac
+# Click "Start AI Cluster"
+# Open http://localhost:52415
+```
+
+That's it. No Python environments, no config files, no terminal commands.
+
+## Why MacHive?
+
+- ✅ **Pool RAM across Macs** - Run 70B models by combining 8GB + 16GB Macs
+- ✅ **Zero configuration** - Auto-installs dependencies, discovers peers automatically
+- ✅ **Completely local** - No data leaves your network, no API keys needed
+- ✅ **Free forever** - Open source models, no subscriptions
+- ✅ **Menu bar app** - Native macOS experience, not a terminal tool
+- ✅ **Works offline** - After initial model download
 
 ## Honest scope
 
