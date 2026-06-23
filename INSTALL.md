@@ -4,7 +4,7 @@ This guide covers every way to install MacHive and its dependencies.
 
 ## Quick start (recommended)
 
-1. Download `MacHive.app` from the [Releases](https://github.com/yourusername/machive/releases) page.
+1. Download `MacHive.app` from the [Releases](https://github.com/PlatiniumTermite/MacHive/releases) page.
 2. Drag `MacHive.app` into `/Applications`.
 3. Double-click MacHive. It appears as a hive icon in the menu bar.
 4. On first launch, MacHive silently installs:
@@ -34,8 +34,8 @@ After the script finishes, quit and reopen MacHive.
 You can also run the script directly from the cloned repo:
 
 ```bash
-git clone https://github.com/yourusername/machive.git
-cd machive
+git clone https://github.com/PlatiniumTermite/MacHive.git
+cd MacHive
 ./install-deps.sh
 ```
 
@@ -45,8 +45,8 @@ Then open `MacHive.xcodeproj` in Xcode and run the app, or build the `.app` your
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/yourusername/machive.git
-cd machive
+git clone https://github.com/PlatiniumTermite/MacHive.git
+cd MacHive
 
 # 2. Generate the Xcode project
 brew install xcodegen

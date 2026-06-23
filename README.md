@@ -19,15 +19,15 @@ This first release intentionally does **not** include: Blender rendering, video 
 
 ## Install
 
-The easiest way is to download `MacHive.app` from the [Releases](https://github.com/yourusername/machive/releases) page, move it to `/Applications`, and launch it.
+The easiest way is to download `MacHive.app` from the [Releases](https://github.com/PlatiniumTermite/MacHive/releases) page, move it to `/Applications`, and launch it.
 
 For a complete step-by-step guide, manual dependency installation, and troubleshooting, see [INSTALL.md](INSTALL.md).
 
 ### Build from source
 
 ```bash
-git clone https://github.com/yourusername/machive.git
-cd machive
+git clone https://github.com/PlatiniumTermite/MacHive.git
+cd MacHive
 # Generate the Xcode project with XcodeGen
 brew install xcodegen
 xcodegen generate
