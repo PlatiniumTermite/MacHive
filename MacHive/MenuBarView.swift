@@ -145,8 +145,14 @@ struct MenuBarView: View {
 
             Picker("Model:", selection: $state.selectedModel) {
                 ForEach(ExoModel.allCases) { model in
-                    Text("\(model.rawValue) (\(model.requiredRAMGB)GB)")
-                        .tag(model)
+                    if state.canRunModel(model) {
+                        Text("\(model.rawValue) (\(model.requiredRAMGB)GB)")
+                            .tag(model)
+                    } else {
+                        Text("\(model.rawValue) (\(model.requiredRAMGB)GB) - Not enough RAM")
+                            .tag(model)
+                            .disabled(true)
+                    }
                 }
             }
             .pickerStyle(.menu)
