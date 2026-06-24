@@ -117,9 +117,9 @@ final class DependencyInstaller: ObservableObject {
             completedSteps.insert(.homebrew)
 
             try Task.checkCancellation()
-            update(message: "Checking Python 3.12...", progress: 0.20)
+            update(message: "Checking Python 3.13...", progress: 0.20)
             if !Python.isInstalled {
-                update(message: "Installing Python 3.12...", progress: 0.25)
+                update(message: "Installing Python 3.13...", progress: 0.25)
                 try await Python.install(onOutput: outputHandler)
             }
             completedSteps.insert(.python)
@@ -145,6 +145,8 @@ final class DependencyInstaller: ObservableObject {
             if !Exo.isInstalled {
                 update(message: "Downloading exo...", progress: 0.75)
                 try await Exo.clone(onOutput: outputHandler)
+                update(message: "Creating Python environment...", progress: 0.80)
+                try await Exo.createVenv(onOutput: outputHandler)
                 update(message: "Building exo dashboard...", progress: 0.85)
                 try await Exo.buildDashboard(onOutput: outputHandler)
             }
@@ -288,6 +290,13 @@ private enum Exo {
         let result = await runShell("git clone --depth 1 https://github.com/exo-explore/exo.git \"\(exoDir)\"", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.exoCloneFailed(result.stderr.isEmpty ? "git clone failed with code \(result.terminationStatus)." : result.stderr)
+        }
+    }
+
+    static func createVenv(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
+        let result = await runShell("cd \"\(installDirectory)\" && uv venv && uv sync", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600, onOutput: onOutput)
+        if result.terminationStatus != 0 {
+            throw DependencyError.exoBuildFailed(result.stderr.isEmpty ? "Python environment setup failed with code \(result.terminationStatus)." : result.stderr)
         }
     }
 

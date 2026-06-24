@@ -125,6 +125,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 02419F3BCB0B471232FC524F /* Build configuration list for PBXNativeTarget "MacHive" */;
 			buildPhases = (
+				E60F6D6D28958C8E948E11AC /* Copy install script */,
 				A6D37C3956CF6243F490F5D7 /* Sources */,
 				EBFFC6F641F81B8C657373B9 /* Resources */,
 				1F8D3652C8A785DBBB300AF5 /* Frameworks */,
@@ -181,6 +182,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		E60F6D6D28958C8E948E11AC /* Copy install script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/install-deps.sh",
+			);
+			name = "Copy install script";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Resources/install-deps.sh",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cp \"${SRCROOT}/install-deps.sh\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		A6D37C3956CF6243F490F5D7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -216,7 +240,7 @@
 				INFOPLIST_FILE = MacHive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.machive.MacHive;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;
@@ -290,7 +314,7 @@
 				INFOPLIST_FILE = MacHive/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.1;
+				MARKETING_VERSION = 1.1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.machive.MacHive;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.10;

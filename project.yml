@@ -8,7 +8,14 @@ targets:
       - MacHive
       - MacHive/NetworkHelper.swift
     resources:
-      - install-deps.sh
+      - path: install-deps.sh
+    preBuildScripts:
+      - name: Copy install script
+        script: cp "${SRCROOT}/install-deps.sh" "${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/"
+        inputFiles:
+          - $(SRCROOT)/install-deps.sh
+        outputFiles:
+          - $(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Resources/install-deps.sh
     dependencies:
       - sdk: AppKit.framework
       - sdk: Foundation.framework
@@ -18,7 +25,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.machive.MacHive
-        MARKETING_VERSION: 1.1.1
+        MARKETING_VERSION: 1.1.2
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: "5.10"
         INFOPLIST_FILE: MacHive/Info.plist

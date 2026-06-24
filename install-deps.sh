@@ -44,7 +44,15 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 4. Build exo dashboard
+# 4. Create Python environment for exo
+# -----------------------------------------------------------------------------
+echo "Creating Python environment for exo..."
+cd "$EXO_DIR"
+uv venv
+uv sync
+
+# -----------------------------------------------------------------------------
+# 5. Build exo dashboard
 # -----------------------------------------------------------------------------
 echo "Building exo dashboard (this may take a few minutes)..."
 cd "$EXO_DIR/dashboard"
