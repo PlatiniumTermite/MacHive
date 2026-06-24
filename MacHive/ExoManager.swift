@@ -387,14 +387,19 @@ final class ExoManager: ObservableObject {
                 if response == nil {
                     if (self?.process?.isRunning ?? false) {
                         self?.isRunning = true
+                        self?.statusText = "Server not responding (process still running)"
                     } else {
                         self?.isRunning = false
+                        self?.statusText = "Cluster stopped"
                     }
                     return
                 }
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     self?.isRunning = true
                     self?.lastError = nil
+                    if (self?.statusText ?? "").contains("not responding") {
+                        self?.statusText = "Cluster running"
+                    }
                 }
             }
         }
