@@ -62,6 +62,7 @@ final class DependencyInstaller: ObservableObject {
     @Published var error: DependencyError? = nil
     @Published var isRunning: Bool = false
     @Published var completedSteps: Set<SetupStep> = []
+    @Published var liveOutput: String = ""
 
     private var currentTask: Task<Void, Never>?
     private let serialQueue = DispatchQueue(label: "com.machive.installer")
@@ -78,6 +79,7 @@ final class DependencyInstaller: ObservableObject {
     func startInstallation() {
         currentTask?.cancel()
         completedSteps.removeAll()
+        liveOutput = ""
         currentTask = Task { @MainActor in
             await performInstallation()
         }
@@ -93,6 +95,14 @@ final class DependencyInstaller: ObservableObject {
         error = nil
         progress = 0
 
+        let outputHandler: @MainActor (String) -> Void = { [weak self] text in
+            self?.liveOutput.append(text)
+            // Keep only last 2000 chars to avoid memory bloat
+            if let self = self, self.liveOutput.count > 2000 {
+                self.liveOutput = String(self.liveOutput.suffix(2000))
+            }
+        }
+
         do {
             try Task.checkCancellation()
             update(message: "Preparing installer...", progress: 0.02)
@@ -102,7 +112,7 @@ final class DependencyInstaller: ObservableObject {
             update(message: "Checking Homebrew...", progress: 0.05)
             if !Homebrew.isInstalled {
                 update(message: "Installing Homebrew...", progress: 0.10)
-                try await Homebrew.install()
+                try await Homebrew.install(onOutput: outputHandler)
             }
             completedSteps.insert(.homebrew)
 
@@ -110,7 +120,7 @@ final class DependencyInstaller: ObservableObject {
             update(message: "Checking Python 3.12...", progress: 0.20)
             if !Python.isInstalled {
                 update(message: "Installing Python 3.12...", progress: 0.25)
-                try await Python.install()
+                try await Python.install(onOutput: outputHandler)
             }
             completedSteps.insert(.python)
 
@@ -118,7 +128,7 @@ final class DependencyInstaller: ObservableObject {
             update(message: "Checking uv...", progress: 0.35)
             if !Uv.isInstalled {
                 update(message: "Installing uv...", progress: 0.40)
-                try await Uv.install()
+                try await Uv.install(onOutput: outputHandler)
             }
             completedSteps.insert(.uv)
 
@@ -126,7 +136,7 @@ final class DependencyInstaller: ObservableObject {
             update(message: "Checking Node.js...", progress: 0.50)
             if !Node.isInstalled {
                 update(message: "Installing Node.js...", progress: 0.55)
-                try await Node.install()
+                try await Node.install(onOutput: outputHandler)
             }
             completedSteps.insert(.node)
 
@@ -134,9 +144,9 @@ final class DependencyInstaller: ObservableObject {
             update(message: "Checking exo...", progress: 0.70)
             if !Exo.isInstalled {
                 update(message: "Downloading exo...", progress: 0.75)
-                try await Exo.clone()
+                try await Exo.clone(onOutput: outputHandler)
                 update(message: "Building exo dashboard...", progress: 0.85)
-                try await Exo.buildDashboard()
+                try await Exo.buildDashboard(onOutput: outputHandler)
             }
             completedSteps.insert(.exo)
 
@@ -146,6 +156,8 @@ final class DependencyInstaller: ObservableObject {
         } catch {
             if let depError = error as? DependencyError {
                 self.error = depError
+            } else if error is CancellationError {
+                self.error = .cancelled
             } else {
                 self.error = .missingTool(error.localizedDescription)
             }
@@ -191,9 +203,9 @@ private enum Homebrew {
         return "\(NSHomeDirectory())/.linuxbrew/bin/brew"
     }
 
-    static func install() async throws {
+    static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
         let script = #"/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)""#
-        let result = await runShell(script, environment: [:], timeout: 600)
+        let result = await runShell(script, environment: [:], timeout: 600, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.homebrewInstallFailed(result.stderr.isEmpty ? "Install script exited with code \(result.terminationStatus)." : result.stderr)
         }
@@ -208,8 +220,11 @@ private enum Python {
                fm.fileExists(atPath: "\(NSHomeDirectory())/.pyenv/shims/python3.12")
     }
 
-    static func install() async throws {
-        let result = await runShell("\(Homebrew.path) install python@3.12", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600)
+    static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
+        var env = ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"]
+        env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        env["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
+        let result = await runShell("\(Homebrew.path) install python@3.12 -v", environment: env, timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.pythonInstallFailed(result.stderr.isEmpty ? "brew install python@3.12 failed with code \(result.terminationStatus)." : result.stderr)
         }
@@ -222,8 +237,11 @@ private enum Uv {
         FileManager.default.fileExists(atPath: "/usr/local/bin/uv")
     }
 
-    static func install() async throws {
-        let result = await runShell("\(Homebrew.path) install uv", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 300)
+    static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
+        var env = ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"]
+        env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        env["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
+        let result = await runShell("\(Homebrew.path) install uv -v", environment: env, timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.uvInstallFailed(result.stderr.isEmpty ? "brew install uv failed with code \(result.terminationStatus)." : result.stderr)
         }
@@ -236,8 +254,11 @@ private enum Node {
         FileManager.default.fileExists(atPath: "/usr/local/bin/node")
     }
 
-    static func install() async throws {
-        let result = await runShell("\(Homebrew.path) install node", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 300)
+    static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
+        var env = ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"]
+        env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        env["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
+        let result = await runShell("\(Homebrew.path) install node -v", environment: env, timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.nodeInstallFailed(result.stderr.isEmpty ? "brew install node failed with code \(result.terminationStatus)." : result.stderr)
         }
@@ -256,7 +277,7 @@ private enum Exo {
         return fm.fileExists(atPath: mainPath) && fm.fileExists(atPath: pyprojectPath)
     }
 
-    static func clone() async throws {
+    static func clone(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
         let fm = FileManager.default
         let parent = "\(NSHomeDirectory())/Library/Application Support/MacHive"
         let exoDir = "\(parent)/exo"
@@ -264,15 +285,15 @@ private enum Exo {
         if fm.fileExists(atPath: exoDir) {
             try? fm.removeItem(atPath: exoDir)
         }
-        let result = await runShell("git clone --depth 1 https://github.com/exo-explore/exo.git \"\(exoDir)\"", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 300)
+        let result = await runShell("git clone --depth 1 https://github.com/exo-explore/exo.git \"\(exoDir)\"", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.exoCloneFailed(result.stderr.isEmpty ? "git clone failed with code \(result.terminationStatus)." : result.stderr)
         }
     }
 
-    static func buildDashboard() async throws {
+    static func buildDashboard(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
         let dashboard = "\(installDirectory)/dashboard"
-        let result = await runShell("cd \"\(dashboard)\" && npm install && npm run build", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600)
+        let result = await runShell("cd \"\(dashboard)\" && npm install && npm run build", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.exoBuildFailed(result.stderr.isEmpty ? "Dashboard build failed with code \(result.terminationStatus)." : result.stderr)
         }
@@ -285,7 +306,7 @@ struct ShellResult {
     let terminationStatus: Int32
 }
 
-func runShell(_ command: String, environment: [String: String], timeout: TimeInterval) async -> ShellResult {
+func runShell(_ command: String, environment: [String: String], timeout: TimeInterval, onOutput: (@MainActor (String) -> Void)? = nil) async -> ShellResult {
     return await withCheckedContinuation { continuation in
         DispatchQueue.global(qos: .userInitiated).async {
             let task = Process()
@@ -309,12 +330,18 @@ func runShell(_ command: String, environment: [String: String], timeout: TimeInt
                 let data = handle.availableData
                 if let text = String(data: data, encoding: .utf8) {
                     stdout.append(text)
+                    DispatchQueue.main.async {
+                        onOutput?(text)
+                    }
                 }
             }
             stderrPipe.fileHandleForReading.readabilityHandler = { handle in
                 let data = handle.availableData
                 if let text = String(data: data, encoding: .utf8) {
                     stderr.append(text)
+                    DispatchQueue.main.async {
+                        onOutput?(text)
+                    }
                 }
             }
 

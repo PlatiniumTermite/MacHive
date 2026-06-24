@@ -28,6 +28,20 @@ struct SetupView: View {
                     .frame(width: 280)
                     .multilineTextAlignment(.center)
 
+                if !installer.liveOutput.isEmpty {
+                    ScrollView {
+                        Text(installer.liveOutput)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 260, alignment: .leading)
+                            .lineLimit(nil)
+                            .padding(6)
+                    }
+                    .frame(width: 280, height: 100)
+                    .background(Color.black.opacity(0.15))
+                    .cornerRadius(8)
+                }
+
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(SetupStep.allCases, id: \.self) { step in
                         HStack(spacing: 8) {
