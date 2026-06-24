@@ -44,6 +44,9 @@ struct Peer: Identifiable, Hashable {
     let name: String
     let ramGB: Int
     let chip: String
+    let macModel: String
+    let osVersion: String
+    let ipAddress: String
     let isOnline: Bool
     var lastSeen: Date
 
@@ -54,14 +57,30 @@ struct Peer: Identifiable, Hashable {
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
+
+    var displayInfo: String {
+        "\(chip) · \(ramGB) GB RAM · \(macModel) · macOS \(osVersion)"
+    }
 }
 
 @MainActor
 final class ClusterState: ObservableObject {
     @Published var status: ClusterStatus = .notRunning
     @Published var peers: [Peer] = []
-    @Published var selectedModel: ExoModel = .llama3_8b
-    @Published var launchAtLogin: Bool = false
+    @Published var selectedModel: ExoModel = UserDefaults.standard.exoModel {
+        didSet { UserDefaults.standard.exoModel = selectedModel }
+    }
+    @Published var launchAtLogin: Bool = LaunchAtLoginManager.isEnabled() {
+        didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
+    }
+    @Published var autoStartCluster: Bool = UserDefaults.standard.bool(forKey: "autoStartCluster") {
+        didSet { UserDefaults.standard.set(autoStartCluster, forKey: "autoStartCluster") }
+    }
+    @Published var showAdvancedSettings: Bool = false
+    @Published var namespace: String = UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive" {
+        didSet { UserDefaults.standard.set(namespace, forKey: "exoNamespace") }
+    }
+    @Published var showExoLogs: Bool = false
 
     var localPeer: Peer {
         Peer(
@@ -69,6 +88,9 @@ final class ClusterState: ObservableObject {
             name: Host.current().localizedName ?? "This Mac",
             ramGB: SystemInfo.totalRAMGB,
             chip: SystemInfo.chipModel,
+            macModel: SystemInfo.macModel,
+            osVersion: SystemInfo.osVersion,
+            ipAddress: NetworkHelper.getLocalIPAddress() ?? "Unknown",
             isOnline: true,
             lastSeen: Date()
         )
@@ -94,10 +116,40 @@ final class ClusterState: ObservableObject {
     }
 }
 
+extension UserDefaults {
+    var exoModel: ExoModel {
+        get {
+            if let raw = string(forKey: "exoModel"), let value = ExoModel(rawValue: raw) {
+                return value
+            }
+            return .llama3_8b
+        }
+        set {
+            set(newValue.rawValue, forKey: "exoModel")
+        }
+    }
+}
+
 enum SystemInfo {
     static var totalRAMGB: Int {
         let bytes = ProcessInfo.processInfo.physicalMemory
         return max(1, Int(bytes / (1024 * 1024 * 1024)))
+    }
+
+    static var macModel: String {
+        var size = 0
+        sysctlbyname("hw.model", nil, &size, nil, 0)
+        guard size > 0 else { return "Mac" }
+        var buffer = [CChar](repeating: 0, count: size)
+        let result = sysctlbyname("hw.model", &buffer, &size, nil, 0)
+        guard result == 0 else { return "Mac" }
+        return String(cString: buffer)
+            .replacingOccurrences(of: ",", with: " ")
+    }
+
+    static var osVersion: String {
+        let version = ProcessInfo.processInfo.operatingSystemVersion
+        return "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)"
     }
 
     static var chipModel: String {

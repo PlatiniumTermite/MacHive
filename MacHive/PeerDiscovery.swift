@@ -94,11 +94,12 @@ final class PeerDiscovery: ObservableObject {
     }
 
     private func txtRecord() -> NWTXTRecord {
-        let ram = "\(SystemInfo.totalRAMGB)"
-        let chip = SystemInfo.chipModel
         var record = NWTXTRecord()
-        record["ram"] = ram
-        record["chip"] = chip
+        record["ram"] = "\(SystemInfo.totalRAMGB)"
+        record["chip"] = SystemInfo.chipModel
+        record["model"] = SystemInfo.macModel
+        record["os"] = SystemInfo.osVersion
+        record["ip"] = NetworkHelper.getLocalIPAddress() ?? "Unknown"
         record["status"] = "online"
         return record
     }
@@ -200,6 +201,9 @@ final class PeerDiscovery: ObservableObject {
             "name": Host.current().localizedName ?? "MacHive",
             "ram": "\(SystemInfo.totalRAMGB)",
             "chip": SystemInfo.chipModel,
+            "model": SystemInfo.macModel,
+            "os": SystemInfo.osVersion,
+            "ip": NetworkHelper.getLocalIPAddress() ?? "Unknown",
             "status": "online"
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
@@ -217,6 +221,9 @@ final class PeerDiscovery: ObservableObject {
             name: name,
             ramGB: parseInt(payload["ram"] ?? "0"),
             chip: payload["chip"] ?? "Apple Silicon",
+            macModel: payload["model"] ?? "Mac",
+            osVersion: payload["os"] ?? "Unknown",
+            ipAddress: payload["ip"] ?? "Unknown",
             isOnline: true,
             lastSeen: Date()
         )
@@ -241,6 +248,9 @@ final class PeerDiscovery: ObservableObject {
                 name: name,
                 ramGB: parseInt(txt["ram"] ?? "0"),
                 chip: txt["chip"] ?? "Apple Silicon",
+                macModel: txt["model"] ?? "Mac",
+                osVersion: txt["os"] ?? "Unknown",
+                ipAddress: txt["ip"] ?? "Unknown",
                 isOnline: true,
                 lastSeen: Date()
             )
@@ -276,6 +286,9 @@ final class PeerDiscovery: ObservableObject {
                     name: peer.name,
                     ramGB: peer.ramGB,
                     chip: peer.chip,
+                    macModel: peer.macModel,
+                    osVersion: peer.osVersion,
+                    ipAddress: peer.ipAddress,
                     isOnline: false,
                     lastSeen: peer.lastSeen
                 )
@@ -299,7 +312,7 @@ private func resultName(_ endpoint: NWEndpoint) -> String? {
 private func extractTXTRecord(from result: NWBrowser.Result) -> [String: String] {
     var dict: [String: String] = [:]
     if case .bonjour(let txt) = result.metadata {
-        let keys = ["ram", "chip", "status"]
+        let keys = ["ram", "chip", "model", "os", "ip", "status"]
         for key in keys {
             dict[key] = txt[key]
         }

@@ -59,7 +59,7 @@ final class NetworkHelper {
         }
     }
     
-    static func getLocalIPAddress() -> String? {
+    nonisolated static func getLocalIPAddress() -> String? {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         

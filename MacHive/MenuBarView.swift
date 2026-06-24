@@ -23,6 +23,10 @@ struct MenuBarView: View {
         .onAppear {
             discovery.start()
             updatePeers()
+            if state.autoStartCluster && !exo.isRunning && state.selectedModelFits {
+                state.status = .starting
+                exo.start(namespace: state.namespace)
+            }
         }
         .onChange(of: discovery.peers) { _ in
             updatePeers()
@@ -124,22 +128,35 @@ struct MenuBarView: View {
 
                 ForEach(state.peers) { peer in
                     HStack(spacing: 10) {
-                        Circle()
-                            .fill(peer.isOnline ? Color.green : Color.gray)
-                            .frame(width: 8, height: 8)
-                            .shadow(color: peer.isOnline ? Color.green.opacity(0.4) : Color.clear, radius: 2, x: 0, y: 0)
+                        ZStack {
+                            Circle()
+                                .fill(peer.isOnline ? Color.green.opacity(0.2) : Color.gray.opacity(0.2))
+                                .frame(width: 32, height: 32)
+                            Circle()
+                                .fill(peer.isOnline ? Color.green : Color.gray)
+                                .frame(width: 10, height: 10)
+                                .shadow(color: peer.isOnline ? Color.green.opacity(0.5) : Color.clear, radius: 3, x: 0, y: 0)
+                        }
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(peer.name)
                                 .font(.body)
-                            Text("\(peer.chip) · \(peer.ramGB) GB RAM")
+                                .fontWeight(.medium)
+                            Text(peer.displayInfo)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Text(peer.isOnline ? "Connected · \(peer.ipAddress)" : "Offline")
+                                .font(.caption2)
+                                .foregroundStyle(peer.isOnline ? .green : .secondary)
                         }
                         Spacer()
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
+                    .background(Color.secondary.opacity(0.06))
+                    .cornerRadius(8)
+                    .padding(.horizontal, 4)
                     .contentShape(Rectangle())
                     .transition(.opacity.combined(with: .scale))
                 }
@@ -210,7 +227,7 @@ struct MenuBarView: View {
             } else {
                 Button("Start AI Cluster") {
                     state.status = .starting
-                    exo.start()
+                    exo.start(namespace: state.namespace)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -276,13 +293,62 @@ struct MenuBarView: View {
 
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            Text("Settings")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
                 Toggle("Launch MacHive at login", isOn: $state.launchAtLogin)
                     .font(.callout)
                     .onChange(of: state.launchAtLogin) { value in
                         LaunchAtLoginManager.setEnabled(value)
                     }
-                Spacer()
+
+                Toggle("Auto-start cluster on launch", isOn: $state.autoStartCluster)
+                    .font(.callout)
+
+                Toggle("Show exo logs", isOn: $state.showExoLogs)
+                    .font(.callout)
+            }
+
+            if state.showExoLogs && !exo.recentLogs.isEmpty {
+                ScrollView {
+                    Text(exo.recentLogs.suffix(20).joined(separator: "\n"))
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .lineLimit(nil)
+                }
+                .frame(maxWidth: .infinity, minHeight: 60, maxHeight: 100)
+                .padding(6)
+                .background(Color.black.opacity(0.15))
+                .cornerRadius(8)
+            }
+
+            Button("Advanced Settings") {
+                state.showAdvancedSettings.toggle()
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+
+            if state.showAdvancedSettings {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Cluster namespace:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("machive", text: $state.namespace)
+                        .font(.callout)
+                        .textFieldStyle(.roundedBorder)
+                        .disabled(exo.isRunning)
+                    Text("All Macs must use the same namespace.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
             }
 
             HStack(spacing: 8) {
@@ -300,7 +366,7 @@ struct MenuBarView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                Button("Copy exo Logs") {
+                Button("Copy Logs") {
                     exo.copyLogsToPasteboard()
                 }
                 .font(.caption)

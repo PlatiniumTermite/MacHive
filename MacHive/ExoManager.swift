@@ -12,12 +12,12 @@ final class ExoManager: ObservableObject {
     @Published var lastError: String? = nil
     @Published var exoPeerCount: Int = 0
     @Published var exoPeerStatus: String = "Not started"
+    @Published private(set) var recentLogs: [String] = []
 
     private var process: Process?
     private var statusTimer: Timer?
     private var restartAttempts: Int = 0
     private let maxRestartAttempts: Int = 3
-    private var recentLogs: [String] = []
     private let maxLogLines: Int = 100
     private let exoDirectory = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
 
@@ -25,17 +25,17 @@ final class ExoManager: ObservableObject {
         URL(string: "http://localhost:52415")!
     }
 
-    func start() {
+    func start(namespace: String = "machive") {
         guard !isRunning else { return }
         lastError = nil
-        
+
         // Pre-flight network checks
         let networkIssues = NetworkHelper.checkNetworkRequirements()
         if !networkIssues.isEmpty {
             NSLog("MacHive: Network warnings: \(networkIssues.joined(separator: "; "))")
             // Don't block startup, just log warnings
         }
-        
+
         isRunning = true
 
         guard ExoManager.exoIsInstalled else {
@@ -43,6 +43,8 @@ final class ExoManager: ObservableObject {
             isRunning = false
             return
         }
+
+        let safeNamespace = namespace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "machive" : namespace
 
         // Pre-sync exo dependencies in the background to avoid runtime failures
         Task {
@@ -65,7 +67,7 @@ final class ExoManager: ObservableObject {
         task.launchPath = "/bin/zsh"
         task.currentDirectoryPath = exoDirectory
 
-        let command = "uv run exo --namespace machive"
+        let command = "uv run exo --namespace \(safeNamespace)"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
