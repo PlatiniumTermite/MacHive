@@ -41,6 +41,10 @@ struct SetupView: View {
                 }
             }
         }
+        .onDisappear {
+            completionTimer?.invalidate()
+            completionTimer = nil
+        }
         .onAppear {
             if !installer.isComplete && !hasStarted {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -201,6 +205,8 @@ struct SetupView: View {
 
                     Button("Try Again") {
                         terminalOpened = false
+                        completionTimer?.invalidate()
+                        completionTimer = nil
                         installer.startInstallation()
                     }
                     .buttonStyle(.borderedProminent)
@@ -216,6 +222,7 @@ struct SetupView: View {
                         Button("Run in Terminal") {
                             terminalOpened = true
                             installer.openTerminalAndInstall()
+                            startCompletionPolling()
                         }
                         .buttonStyle(.bordered)
                         .font(.caption)
