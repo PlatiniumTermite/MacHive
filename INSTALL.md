@@ -73,9 +73,44 @@ To create a release `.app`:
 
 1. **Move to /Applications:** MacHive must be in `/Applications` for launch-at-login and some system permissions to work reliably.
 2. **Sandbox note:** MacHive disables the app sandbox because it needs to install Homebrew, Python, uv, Node.js, and the exo source on your Mac, and run `uv run exo` as a subprocess. This is why MacHive is distributed as a direct-download `.app` rather than through the Mac App Store.
-3. **Heterogeneous clusters are supported:** Each Mac in the cluster can have a different amount of RAM and a different M-series chip. MacHive adds the RAM together and shows each Mac's chip and RAM in the peer list.
+3. **Heterogeneous clusters are supported:** Each Mac in the cluster can have a different amount of RAM and a different M-series chip. MacHive adds the RAM together and shows each Mac's chip, model, RAM, macOS version, and IP in the peer list.
 4. **Approve login item:** If you enable **Launch MacHive at login**, go to **System Settings → General → Login Items** and make sure MacHive is allowed.
 5. **Network permission:** The first time MacHive runs, macOS may ask to allow local network access. Click **Allow**.
+6. **Auto-start cluster:** In Settings, enable **Auto-start cluster on launch** so exo starts automatically when MacHive opens.
+7. **Namespace:** In Settings → Advanced Settings, all Macs must use the same cluster namespace (default is `machive`).
+
+## Common Diagnostics fixes
+
+Open the MacHive menu and click **Diagnostics**. If any check fails, use the matching button below:
+
+### ❌ MacHive in /Applications
+
+- Click **Open /Applications Folder** in Diagnostics.
+- Drag `MacHive.app` into `/Applications`.
+- Quit and relaunch MacHive from `/Applications`.
+
+### ❌ Firewall status
+
+- Click **Open Firewall Settings** in Diagnostics.
+- Turn the firewall off, or add `MacHive.app` to the allowed apps list.
+- The firewall cannot be disabled automatically by apps — macOS requires you to do it manually.
+
+### ❌ exo running
+
+- Click **Start AI Cluster** in Diagnostics.
+- If the cluster exits immediately, click **Test exo** to see the exact error.
+- If it still fails, click **Copy Logs** and paste the output into a GitHub issue.
+
+### ❌ Network available
+
+- Make sure WiFi is on.
+- All Macs must be on the same WiFi network.
+- Avoid guest networks or VLANs that block local traffic.
+
+### Test exo is stuck
+
+- MacHive now kills any stuck test after 10 seconds.
+- If it still spins forever, the shell runner is blocked. Click **Copy Logs**, quit MacHive, and reopen it.
 
 ## Troubleshooting
 

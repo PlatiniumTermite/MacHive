@@ -17,15 +17,22 @@ MacHive turns your Apple Silicon Macs into a distributed AI cluster. Run large l
 
 ## Quick Start
 
-```bash
-# Download MacHive.app from Releases
-# Drag to /Applications
-# Launch on each Mac
-# Click "Start AI Cluster"
-# Open http://localhost:52415
-```
+1. Download `MacHive.app` from the [Releases](https://github.com/PlatiniumTermite/MacHive/releases) page.
+2. Drag it to `/Applications` (required for network permissions).
+3. Launch MacHive on each Mac you want in the cluster.
+4. First launch installs dependencies automatically (10–30 minutes).
+5. Click **Start AI Cluster** on each Mac.
+6. Click **Open Chat** to use the cluster at `http://localhost:52415`.
 
 That's it. No Python environments, no config files, no terminal commands.
+
+## What each Mac shows
+
+- **Peer list**: every Mac with its chip, RAM, model, macOS version, and IP address.
+- **Combined RAM**: total RAM available for the selected model.
+- **Model picker**: choose Llama 3, Mistral, or Qwen. MacHive tells you if the model fits.
+- **Settings**: auto-start cluster, launch at login, show live exo logs, change cluster namespace.
+- **Diagnostics**: one-click checks for macOS, app location, firewall, exo status, network.
 
 ## Why MacHive?
 
