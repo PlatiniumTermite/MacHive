@@ -185,20 +185,27 @@ final class ExoManager: ObservableObject {
         restartAttempts = maxRestartAttempts
         statusTimer?.invalidate()
         statusTimer = nil
-        process?.terminate()
-        if let process = process, process.isRunning {
-            DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
-                if process.isRunning {
-                    process.kill()
-                }
-                Task { @MainActor [weak self] in
-                    self?.process = nil
-                    self?.isRunning = false
-                }
+        statusText = "Stopping cluster..."
+
+        // Force kill the main process and all child processes
+        if let process = process {
+            process.terminate()
+            if process.isRunning {
+                process.kill()
             }
-        } else {
-            self.process = nil
-            self.isRunning = false
+        }
+
+        // Kill any leftover exo or uv processes that may hold locks
+        Task {
+            let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+                "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+                "HOME": NSHomeDirectory()
+            ], timeout: 10, onOutput: nil)
+            await MainActor.run { [weak self] in
+                self?.process = nil
+                self?.isRunning = false
+                self?.statusText = "Cluster stopped"
+            }
         }
     }
 

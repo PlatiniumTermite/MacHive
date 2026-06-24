@@ -263,6 +263,8 @@ struct MenuBarView: View {
                     Button("Stop", role: .destructive) {
                         exo.stop()
                         state.status = .notRunning
+                        state.peers.removeAll()
+                        discovery.refresh()
                     }
                 } message: {
                     Text("This will stop the exo process on this Mac.")
@@ -271,6 +273,9 @@ struct MenuBarView: View {
                 Button("Start AI Cluster") {
                     state.status = .starting
                     exo.start(namespace: state.namespace)
+                    DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                        discovery.forceDiscovery()
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
