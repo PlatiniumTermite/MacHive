@@ -169,6 +169,16 @@ struct MenuBarView: View {
                             Text(peer.isOnline ? "Connected · \(peer.ipAddress)" : "Offline")
                                 .font(.caption2)
                                 .foregroundStyle(peer.isOnline ? .green : .secondary)
+                            if peer.namespace != state.namespace {
+                                Text("⚠️ Different namespace: '\(peer.namespace)' (this Mac uses '\(state.namespace)')")
+                                    .font(.caption2)
+                                    .foregroundStyle(.red)
+                                    .lineLimit(1)
+                            } else {
+                                Text("namespace: \(peer.namespace)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
                     }

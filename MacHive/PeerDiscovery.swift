@@ -100,6 +100,7 @@ final class PeerDiscovery: ObservableObject {
         record["model"] = SystemInfo.macModel
         record["os"] = SystemInfo.osVersion
         record["ip"] = NetworkHelper.getLocalIPAddress() ?? "Unknown"
+        record["namespace"] = UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive"
         record["status"] = "online"
         return record
     }
@@ -204,6 +205,7 @@ final class PeerDiscovery: ObservableObject {
             "model": SystemInfo.macModel,
             "os": SystemInfo.osVersion,
             "ip": NetworkHelper.getLocalIPAddress() ?? "Unknown",
+            "namespace": UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive",
             "status": "online"
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
@@ -224,6 +226,7 @@ final class PeerDiscovery: ObservableObject {
             macModel: payload["model"] ?? "Mac",
             osVersion: payload["os"] ?? "Unknown",
             ipAddress: payload["ip"] ?? "Unknown",
+            namespace: payload["namespace"] ?? "unknown",
             isOnline: true,
             lastSeen: Date()
         )
@@ -251,6 +254,7 @@ final class PeerDiscovery: ObservableObject {
                 macModel: txt["model"] ?? "Mac",
                 osVersion: txt["os"] ?? "Unknown",
                 ipAddress: txt["ip"] ?? "Unknown",
+                namespace: txt["namespace"] ?? "unknown",
                 isOnline: true,
                 lastSeen: Date()
             )
@@ -289,6 +293,7 @@ final class PeerDiscovery: ObservableObject {
                     macModel: peer.macModel,
                     osVersion: peer.osVersion,
                     ipAddress: peer.ipAddress,
+                    namespace: peer.namespace,
                     isOnline: false,
                     lastSeen: peer.lastSeen
                 )
@@ -312,7 +317,7 @@ private func resultName(_ endpoint: NWEndpoint) -> String? {
 private func extractTXTRecord(from result: NWBrowser.Result) -> [String: String] {
     var dict: [String: String] = [:]
     if case .bonjour(let txt) = result.metadata {
-        let keys = ["ram", "chip", "model", "os", "ip", "status"]
+        let keys = ["ram", "chip", "model", "os", "ip", "namespace", "status"]
         for key in keys {
             dict[key] = txt[key]
         }

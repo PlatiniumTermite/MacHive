@@ -57,6 +57,7 @@ struct Peer: Identifiable, Hashable {
     let macModel: String
     let osVersion: String
     let ipAddress: String
+    let namespace: String
     let isOnline: Bool
     var lastSeen: Date
 
@@ -101,6 +102,7 @@ final class ClusterState: ObservableObject {
             macModel: SystemInfo.macModel,
             osVersion: SystemInfo.osVersion,
             ipAddress: NetworkHelper.getLocalIPAddress() ?? "Unknown",
+            namespace: namespace,
             isOnline: true,
             lastSeen: Date()
         )
