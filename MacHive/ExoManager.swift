@@ -21,6 +21,8 @@ final class ExoManager: ObservableObject {
     private var statusTimer: Timer?
     private var restartAttempts: Int = 0
     private let maxRestartAttempts: Int = 3
+    private var consecutiveFailures: Int = 0
+    private let maxConsecutiveFailures: Int = 3
     private let maxLogLines: Int = 100
     private let exoDirectory = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
 
@@ -421,6 +423,8 @@ final class ExoManager: ObservableObject {
         let task = URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
             Task { @MainActor [weak self] in
                 if response == nil {
+                    self?.consecutiveFailures += 1
+                    guard self?.consecutiveFailures ?? 0 >= self?.maxConsecutiveFailures ?? 3 else { return }
                     if (self?.process?.isRunning ?? false) {
                         self?.isRunning = true
                         self?.statusText = "Server not responding (process still running)"
@@ -430,6 +434,7 @@ final class ExoManager: ObservableObject {
                     }
                     return
                 }
+                self?.consecutiveFailures = 0
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     self?.isRunning = true
                     self?.lastError = nil
