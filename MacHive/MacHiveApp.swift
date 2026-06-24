@@ -81,10 +81,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @objc private func togglePopover() {
         if let button = statusItem.button {
             if popover.isShown {
-                popover.performClose(nil)
+                popover.close()
+                NSApp.deactivate()
             } else {
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                 popover.contentViewController?.view.window?.makeKey()
+                NSApp.activate(ignoringOtherApps: true)
             }
         }
     }

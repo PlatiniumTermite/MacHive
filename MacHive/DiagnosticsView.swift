@@ -14,6 +14,8 @@ struct DiagnosticsView: View {
     @State private var rebuildResult: String? = nil
     @State private var clearingLocks = false
     @State private var clearLocksResult: String? = nil
+    @State private var movingToApplications = false
+    @State private var moveResult: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -83,12 +85,13 @@ struct DiagnosticsView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Move MacHive to /Applications") {
+                    Button(movingToApplications ? "Moving..." : "Move MacHive to /Applications") {
                         moveToApplications()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .frame(maxWidth: .infinity)
+                    .disabled(movingToApplications)
                 }
                 .padding(8)
                 .background(Color.red.opacity(0.08))
@@ -152,6 +155,22 @@ struct DiagnosticsView: View {
             .frame(maxWidth: .infinity)
             .disabled(clearingLocks)
 
+            if let moveResult = moveResult, !movingToApplications {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: moveResult.contains("failed") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .foregroundStyle(moveResult.contains("failed") ? .red : .green)
+                    Text("Move: \(moveResult)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
+            }
+
             if let testResult = testResult, !testingExo {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: testResult.contains("failed") || testResult.contains("Could not") ? "exclamationmark.triangle" : "checkmark.circle")
@@ -205,6 +224,9 @@ struct DiagnosticsView: View {
                 pasteboard.clearContents()
                 let text = results.map { "\($0.passed ? "✅" : "❌") \($0.title)\($0.detail.map { ": \($0)" } ?? "")" }.joined(separator: "\n")
                 var full = text
+                if let moveResult = moveResult {
+                    full += "\n\nMove: \(moveResult)"
+                }
                 if let testResult = testResult {
                     full += "\n\nTest exo: \(testResult)"
                 }
@@ -329,6 +351,8 @@ struct DiagnosticsView: View {
     }
 
     private func moveToApplications() {
+        movingToApplications = true
+        moveResult = nil
         let source = Bundle.main.bundleURL
         let destination = URL(fileURLWithPath: "/Applications/\(source.lastPathComponent)")
         Task {
@@ -336,13 +360,15 @@ struct DiagnosticsView: View {
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
             ], timeout: 60, onOutput: nil)
             await MainActor.run {
+                movingToApplications = false
                 if result.terminationStatus == 0 {
+                    moveResult = "Moved successfully. Relaunching from /Applications..."
                     NSWorkspace.shared.open(destination)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                         NSApplication.shared.terminate(nil)
                     }
                 } else {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
+                    moveResult = "failed: \(result.stderr)"
                 }
             }
         }
