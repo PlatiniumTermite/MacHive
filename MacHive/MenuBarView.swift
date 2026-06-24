@@ -37,10 +37,6 @@ struct MenuBarView: View {
                     showingWelcome = true
                 }
             }
-            if state.autoStartCluster && !exo.isRunning && !exo.isPreparing && state.selectedModelFits {
-                state.status = .starting
-                exo.start(namespace: state.namespace)
-            }
         }
         .onChange(of: discovery.peers) { _ in
             updatePeers()

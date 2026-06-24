@@ -17,7 +17,18 @@ struct MacHiveApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
-    @Published var setupComplete = false
+    @Published var setupComplete = false {
+        didSet {
+            if setupComplete && !autoStartHandled {
+                autoStartHandled = true
+                sharedDiscovery.start()
+                if UserDefaults.standard.bool(forKey: "autoStartCluster"), !sharedExo.isRunning, !sharedExo.isPreparing {
+                    sharedExo.start(namespace: UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive")
+                }
+            }
+        }
+    }
+    private var autoStartHandled = false
     private var hostingController: NSHostingController<AnyView>?
     let sharedDiscovery = PeerDiscovery()
     let sharedExo = ExoManager()
@@ -51,7 +62,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             if installer.isComplete {
                 setupComplete = true
                 rebuildPopover()
-                sharedDiscovery.start()
                 await sharedExo.checkExistingExo()
             }
         }
