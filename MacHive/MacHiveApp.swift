@@ -13,11 +13,14 @@ struct MacHiveApp: App {
     }
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem!
     private var popover: NSPopover!
     @Published var setupComplete = false
     private var hostingController: NSHostingController<AnyView>?
+    let sharedDiscovery = PeerDiscovery()
+    let sharedExo = ExoManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -48,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             if installer.isComplete {
                 setupComplete = true
                 rebuildPopover()
+                sharedDiscovery.start()
             }
         }
     }
@@ -55,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @ViewBuilder
     private var contentView: some View {
         if setupComplete {
-            MenuBarView()
+            MenuBarView(discovery: sharedDiscovery, exo: sharedExo)
         } else {
             let binding = Binding<Bool>(
                 get: { self.setupComplete },

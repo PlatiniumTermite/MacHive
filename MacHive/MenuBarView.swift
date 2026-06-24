@@ -1,12 +1,18 @@
 import SwiftUI
 
+@MainActor
 struct MenuBarView: View {
     @StateObject private var state = ClusterState()
-    @StateObject private var discovery = PeerDiscovery()
-    @StateObject private var exo = ExoManager()
+    @ObservedObject var discovery: PeerDiscovery
+    @ObservedObject var exo: ExoManager
     @State private var showingStopConfirmation = false
     @State private var showingDiagnostics = false
     @State private var manualPeerIP: String = ""
+
+    init(discovery: PeerDiscovery, exo: ExoManager) {
+        self.discovery = discovery
+        self.exo = exo
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -22,9 +28,8 @@ struct MenuBarView: View {
         }
         .frame(width: 320)
         .onAppear {
-            discovery.start()
             updatePeers()
-            if state.autoStartCluster && !exo.isRunning && state.selectedModelFits {
+            if state.autoStartCluster && !exo.isRunning && !exo.isPreparing && state.selectedModelFits {
                 state.status = .starting
                 exo.start(namespace: state.namespace)
             }
@@ -488,5 +493,11 @@ struct MenuBarView: View {
 }
 
 #Preview {
-    MenuBarView()
+    @MainActor
+    struct PreviewWrapper: View {
+        var body: some View {
+            MenuBarView(discovery: PeerDiscovery(), exo: ExoManager())
+        }
+    }
+    return PreviewWrapper()
 }
