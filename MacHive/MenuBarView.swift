@@ -75,7 +75,7 @@ struct MenuBarView: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(.green)
                     } else if state.status == .running || state.status == .ready {
-                        Text("Starting...")
+                        Text("Running")
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }

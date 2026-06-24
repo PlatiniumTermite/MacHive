@@ -14,6 +14,7 @@ final class ExoManager: ObservableObject {
     @Published var exoPeerStatus: String = "Not started"
     @Published var statusText: String = "Not started"
     @Published private(set) var recentLogs: [String] = []
+    private var startWatchdogTimer: Timer?
 
     private var process: Process?
     private var statusTimer: Timer?
@@ -46,6 +47,16 @@ final class ExoManager: ObservableObject {
 
         isRunning = true
         statusText = "Preparing cluster..."
+        startWatchdogTimer?.invalidate()
+        startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if self.statusText != "Cluster started" && self.statusText != "Cluster stopped" {
+                    self.lastError = "Cluster is taking too long to start. Try clicking Stop, then Clear uv Locks in Diagnostics, then Start again."
+                    self.statusText = "Cluster start timed out"
+                }
+            }
+        }
 
         Task {
             // Step 1: Kill any stuck uv processes and clear stale locks
@@ -67,6 +78,8 @@ final class ExoManager: ObservableObject {
                     self?.lastError = "uv sync failed: \(output.isEmpty ? "Unknown error" : output)"
                     self?.isRunning = false
                     self?.statusText = "Cluster failed to prepare"
+                    self?.startWatchdogTimer?.invalidate()
+                    self?.startWatchdogTimer = nil
                 }
                 return
             }
@@ -173,11 +186,15 @@ final class ExoManager: ObservableObject {
             restartAttempts = 0
             startPolling()
             statusText = "Cluster started"
+            startWatchdogTimer?.invalidate()
+            startWatchdogTimer = nil
         } catch {
             lastError = "Failed to start exo: \(error.localizedDescription)"
             isRunning = false
             process = nil
             statusText = "Cluster failed to start"
+            startWatchdogTimer?.invalidate()
+            startWatchdogTimer = nil
         }
     }
 
@@ -185,6 +202,8 @@ final class ExoManager: ObservableObject {
         restartAttempts = maxRestartAttempts
         statusTimer?.invalidate()
         statusTimer = nil
+        startWatchdogTimer?.invalidate()
+        startWatchdogTimer = nil
         statusText = "Stopping cluster..."
         isRunning = false
 
