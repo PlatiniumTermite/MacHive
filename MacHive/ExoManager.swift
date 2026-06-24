@@ -59,8 +59,9 @@ final class ExoManager: ObservableObject {
         }
 
         Task {
-            // Step 1: Kill any stuck uv processes and clear stale locks
+            // Step 1: Kill any stuck uv processes, clear stale locks, and remove exo pidfile
             await clearUVLocksInternal()
+            await removeExoPidfile()
 
             // Step 2: Start exo (uv run will sync automatically if needed)
             await MainActor.run { [weak self] in
@@ -79,6 +80,20 @@ final class ExoManager: ObservableObject {
             return "Stale uv locks cleared. Stop and restart the cluster."
         } else {
             return "Lock clear finished (exit code \(result.terminationStatus))."
+        }
+    }
+
+    private func removeExoPidfile() async {
+        let cacheDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cache/exo")
+        let pidFile = cacheDir.appendingPathComponent("exo.pid")
+        if FileManager.default.fileExists(atPath: pidFile.path) {
+            if let pidString = try? String(contentsOf: pidFile, encoding: .utf8),
+               let pid = Int(pidString.trimmingCharacters(in: .whitespacesAndNewlines)), pid > 0 {
+                _ = await runShell("kill -9 \(pid) 2>/dev/null; sleep 1", environment: [
+                    "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+                ], timeout: 5, onOutput: nil)
+            }
+            try? FileManager.default.removeItem(at: pidFile)
         }
     }
 
@@ -228,8 +243,9 @@ final class ExoManager: ObservableObject {
         }
         process = nil
 
-        // Kill any leftover exo or uv processes that may hold locks
+        // Kill any leftover exo or uv processes that may hold locks, and remove the pidfile
         Task {
+            await removeExoPidfile()
             let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
                 "HOME": NSHomeDirectory()
