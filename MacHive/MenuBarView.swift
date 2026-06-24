@@ -86,6 +86,19 @@ struct MenuBarView: View {
                 .padding(.vertical, 6)
             }
 
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+                Text("Click Start AI Cluster on every Mac to form the cluster.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+            .padding(.horizontal)
+            .padding(.top, 6)
+            .padding(.bottom, 2)
+
             if state.peers.isEmpty {
                 HStack(spacing: 6) {
                     if discovery.isBrowsing {
@@ -211,19 +224,33 @@ struct MenuBarView: View {
     }
 
     private var statusFooter: some View {
-        HStack(spacing: 8) {
-            Text("Status")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            Spacer()
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
-                Text(state.status.display)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text("Status")
                     .font(.callout)
-                    .fontWeight(.medium)
-                    .foregroundStyle(statusColor)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 8, height: 8)
+                    Text(state.status.display)
+                        .font(.callout)
+                        .fontWeight(.medium)
+                        .foregroundStyle(statusColor)
+                }
+            }
+
+            if exo.isRunning && exo.exoPeerStatus != "Not started" {
+                HStack(spacing: 6) {
+                    Image(systemName: exo.exoPeerCount > 0 ? "checkmark.circle.fill" : "hourglass")
+                        .foregroundColor(exo.exoPeerCount > 0 ? .green : .orange)
+                        .font(.caption)
+                    Text(exo.exoPeerStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
             }
         }
         .padding(.horizontal)

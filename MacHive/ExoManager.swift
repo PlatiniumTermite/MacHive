@@ -200,6 +200,21 @@ final class ExoManager: ObservableObject {
         if recentLogs.count > maxLogLines {
             recentLogs.removeFirst(recentLogs.count - maxLogLines)
         }
+
+        // Parse exo logs for peer connection status
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            if line.contains("Connected to peer") || line.contains("connected to peer") || line.contains("peer") && line.contains("connected") {
+                self.exoPeerStatus = "Peers connected"
+            } else if line.contains("Waiting for peer") || line.contains("Listening") || line.contains("Node ID") {
+                self.exoPeerStatus = "Waiting for peers..."
+            } else if line.contains("Partition") {
+                self.exoPeerStatus = "Model distributed across peers"
+            }
+            // Count connected peers by counting "Connected to peer" occurrences
+            let connectedLines = self.recentLogs.filter { $0.contains("Connected to peer") || $0.contains("connected to peer") }
+            self.exoPeerCount = connectedLines.count
+        }
     }
 
     private func startPolling() {
