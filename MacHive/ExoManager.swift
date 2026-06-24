@@ -51,14 +51,14 @@ final class ExoManager: ObservableObject {
         let safeNamespace = namespace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "machive" : namespace
 
         isPreparing = true
-        statusText = "Starting exo..."
+        statusText = "Starting AI engine..."
         startWatchdogTimer?.invalidate()
         startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 180.0, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                if self.statusText != "Cluster started" && self.statusText != "Cluster stopped" && self.statusText != "Still starting..." && self.statusText != "Dashboard ready" {
-                    self.lastError = "Cluster is taking too long to start. Try clicking Stop, then Clear uv Locks in Diagnostics, then Start again."
-                    self.statusText = "Cluster start timed out"
+                if self.statusText != "AI engine ready" && self.statusText != "AI engine stopped" && self.statusText != "Still starting..." && self.statusText != "Dashboard ready" {
+                    self.lastError = "The AI engine is taking longer than expected. Click Fix Common Issues to clear stuck processes and try again."
+                    self.statusText = "Start timed out"
                 }
             }
         }
@@ -73,7 +73,7 @@ final class ExoManager: ObservableObject {
             let portsFree = await checkPortsFree()
             if !portsFree {
                 await MainActor.run { [weak self] in
-                    self?.lastError = "Ports 52414/52415 are still in use after cleanup. Another exo process is running. Stop it manually or restart your Mac."
+                    self?.lastError = "Another exo process is already using the cluster ports. Click Fix Common Issues to free them, or restart your Mac."
                     self?.statusText = "Port blocked"
                     self?.isPreparing = false
                 }
@@ -84,7 +84,7 @@ final class ExoManager: ObservableObject {
 
             // Step 3: Start exo directly from the venv binary
             await MainActor.run { [weak self] in
-                self?.statusText = "Starting exo..."
+                self?.statusText = "Starting AI engine..."
             }
             await launchExo(namespace: safeNamespace)
         }
@@ -191,7 +191,7 @@ final class ExoManager: ObservableObject {
                 _ = stderrPipe.fileHandleForReading.readDataToEndOfFile()
                 self.process = nil
                 self.isRunning = false
-                let wasIntentionalStop = self.stoppingManually || self.statusText == "Stopping cluster..." || self.statusText == "Cluster stopped"
+                let wasIntentionalStop = self.stoppingManually || self.statusText == "Stopping AI engine..." || self.statusText == "AI engine stopped"
                 if wasIntentionalStop {
                     self.stoppingManually = false
                     self.lastError = nil
@@ -209,7 +209,7 @@ final class ExoManager: ObservableObject {
                         }
                     }
                 } else {
-                    self.statusText = "Cluster failed to start"
+                    self.statusText = "AI engine failed to start"
                     self.isPreparing = false
                 }
             }
@@ -224,17 +224,17 @@ final class ExoManager: ObservableObject {
             // Verify the server actually responds before claiming it is running
             // exo can take a while on first launch while it downloads models or builds the dashboard
             await MainActor.run { [weak self] in
-                self?.statusText = "Waiting for exo server..."
+                self?.statusText = "Waiting for AI engine to respond..."
             }
             let serverReady = await waitForServer(timeout: 60)
             if serverReady {
                 isRunning = true
                 isPreparing = false
-                statusText = "Cluster started"
+                statusText = "AI engine ready"
             } else {
                 // exo may still be downloading model weights or building the dashboard on first launch.
                 // Don't kill it automatically; let the user decide or wait for the health check.
-                lastError = "exo is still starting. If this is the first launch, it may be downloading model weights. Click Stop if you want to cancel, or wait and check Test Cluster."
+                lastError = "The AI engine is still starting. On first launch it may be downloading model weights. Click Stop to cancel, or wait and click Open Chat."
                 statusText = "Still starting..."
                 // Keep isPreparing true so the UI shows it's still working
                 isPreparing = true
@@ -242,11 +242,11 @@ final class ExoManager: ObservableObject {
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
         } catch {
-            lastError = "Failed to start exo: \(error.localizedDescription)"
+            lastError = "Failed to start the AI engine: \(error.localizedDescription)"
             isRunning = false
             isPreparing = false
             process = nil
-            statusText = "Cluster failed to start"
+            statusText = "AI engine failed to start"
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
         }
@@ -264,7 +264,7 @@ final class ExoManager: ObservableObject {
             await MainActor.run { [weak self] in
                 self?.isRunning = true
                 self?.isPreparing = false
-                self?.statusText = "Cluster already running"
+                self?.statusText = "AI engine already running"
                 self?.startPolling()
             }
         }
@@ -295,7 +295,7 @@ final class ExoManager: ObservableObject {
         statusTimer = nil
         startWatchdogTimer?.invalidate()
         startWatchdogTimer = nil
-        statusText = "Stopping cluster..."
+        statusText = "Stopping AI engine..."
         isRunning = false
         isPreparing = false
 
@@ -317,7 +317,7 @@ final class ExoManager: ObservableObject {
                 "HOME": NSHomeDirectory()
             ], timeout: 10, onOutput: nil)
             await MainActor.run { [weak self] in
-                self?.statusText = "Cluster stopped"
+                self?.statusText = "AI engine stopped"
             }
         }
     }
@@ -327,16 +327,16 @@ final class ExoManager: ObservableObject {
         let request = URLRequest(url: url, timeoutInterval: 5.0)
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             Task { @MainActor [weak self] in
-                if let error = error {
-                    self?.lastError = "Cluster test failed: server is not reachable. Error: \(error.localizedDescription)"
+                if error != nil {
+                    self?.lastError = "The chat server is not reachable yet. The AI engine may still be starting. Wait 30 seconds and try again."
                     return
                 }
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    self?.statusText = "Cluster test passed: server is responding"
+                    self?.statusText = "AI engine is responding"
                     self?.lastError = nil
                     NSWorkspace.shared.open(self?.dashboardURL ?? URL(string: "http://localhost:52415")!)
                 } else {
-                    self?.lastError = "Cluster test failed: server returned status \((response as? HTTPURLResponse)?.statusCode ?? 0)"
+                    self?.lastError = "The chat server returned status \((response as? HTTPURLResponse)?.statusCode ?? 0). Wait a moment and try again."
                 }
             }
         }
@@ -365,7 +365,7 @@ final class ExoManager: ObservableObject {
                 }
             }
             await MainActor.run { [weak self] in
-                self?.lastError = "Chat server is not responding at localhost:52415. exo may still be starting or the dashboard build failed. Click Copy Logs and wait 60 seconds, then try again."
+                self?.lastError = "The chat server is not responding yet. The AI engine may still be starting or the dashboard is still building. Wait 60 seconds and try again."
             }
         }
     }
@@ -418,8 +418,8 @@ final class ExoManager: ObservableObject {
                 self.statusText = "Namespace mismatch"
             }
             if lowercased.contains("address already in use") || lowercased.contains("can not create a new tcp listener") {
-                self.lastError = "Port 52414 or 52415 is already in use. Another exo process is still running. Click Stop Cluster, wait 5 seconds, then click Start AI Cluster again."
-                self.statusText = "Port blocked by old exo process"
+                self.lastError = "The AI engine ports are already in use. Another process is still running. Click Fix Common Issues, or stop and restart the cluster."
+                self.statusText = "Port blocked"
                 self.isRunning = false
                 self.isPreparing = false
             }
@@ -461,10 +461,10 @@ final class ExoManager: ObservableObject {
                     guard self?.consecutiveFailures ?? 0 >= self?.maxConsecutiveFailures ?? 3 else { return }
                     if (self?.process?.isRunning ?? false) {
                         self?.isRunning = true
-                        self?.statusText = "Server not responding (process still running)"
+                        self?.statusText = "AI engine is busy (process still running)"
                     } else {
                         self?.isRunning = false
-                        self?.statusText = "Cluster stopped"
+                        self?.statusText = "AI engine stopped"
                     }
                     return
                 }
@@ -472,8 +472,8 @@ final class ExoManager: ObservableObject {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     self?.isRunning = true
                     self?.lastError = nil
-                    if (self?.statusText ?? "").contains("not responding") {
-                        self?.statusText = "Cluster running"
+                    if (self?.statusText ?? "").contains("busy") {
+                        self?.statusText = "AI engine running"
                     }
                 }
             }

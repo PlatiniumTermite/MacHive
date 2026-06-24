@@ -11,6 +11,7 @@ struct MenuBarView: View {
     @State private var showingFullError = false
     @State private var fullErrorMessage = ""
     @State private var manualPeerIP: String = ""
+    @State private var isFixing = false
 
     init(discovery: PeerDiscovery, exo: ExoManager) {
         self.discovery = discovery
@@ -148,24 +149,6 @@ struct MenuBarView: View {
                 .padding(.vertical, 6)
             }
 
-            HStack(alignment: .top, spacing: 6) {
-                Image(systemName: "info.circle")
-                    .font(.caption)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("How to combine two Macs:")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                    Text("1. Connect both Macs to the same WiFi\n2. Set the same namespace in Settings → Advanced\n3. Click Start AI Cluster on both Macs\n4. Wait for green status dots, then click Open Chat")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer()
-            }
-            .padding(.horizontal)
-            .padding(.top, 6)
-            .padding(.bottom, 2)
-
             if !discovery.detectedForeignNamespaces.isEmpty {
                 let foreign = discovery.detectedForeignNamespaces.first ?? "unknown"
                 HStack(spacing: 6) {
@@ -192,26 +175,33 @@ struct MenuBarView: View {
             }
 
             if state.peers.isEmpty {
-                HStack(alignment: .top, spacing: 6) {
-                    if discovery.isBrowsing {
-                        ProgressView()
-                            .controlSize(.small)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Discovery active: Bonjour + UDP broadcast + UDP multicast")
-                                .font(.caption)
-                            Text("Auto-scanning every 5 seconds for other Macs with MacHive...")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        if discovery.isBrowsing {
+                            ProgressView()
+                                .controlSize(.small)
                         }
-                    } else {
-                        Image(systemName: "magnifyingglass")
-                        Text("No other Macs found. Make sure other Macs have MacHive running on the same WiFi and namespace.")
+                        Text("Waiting for other Macs")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                        Spacer()
                     }
+                    Text("MacHive scans your WiFi every few seconds. Make sure MacHive is running on your other Macs, with the same namespace, and the firewall is off on all Macs.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Boost discovery now") {
+                        discovery.forceDiscovery()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
                 }
-                .font(.caption)
-                .foregroundStyle(.secondary)
                 .padding(.horizontal)
-                .padding(.vertical, 6)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.05))
+                .cornerRadius(8)
+                .padding(.horizontal, 4)
             } else {
                 Text("Macs in this cluster")
                     .font(.caption)
@@ -337,13 +327,6 @@ struct MenuBarView: View {
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)
 
-                Button("Test Cluster") {
-                    exo.testCluster()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-
                 Button("Stop Cluster") {
                     showingStopConfirmation = true
                 }
@@ -368,16 +351,27 @@ struct MenuBarView: View {
                     .frame(maxWidth: .infinity)
                     .disabled(true)
             } else {
-                Button("Start AI Cluster") {
-                    state.status = .starting
-                    exo.start(namespace: state.namespace)
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
-                        discovery.forceDiscovery()
+                VStack(spacing: 8) {
+                    Button("Start AI Cluster") {
+                        state.status = .starting
+                        exo.start(namespace: state.namespace)
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                            discovery.forceDiscovery()
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+
+                    Button(isFixing ? "Fixing..." : "Fix Common Issues") {
+                        fixCommonIssues()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .disabled(isFixing)
+                    .help("Kill stuck processes, clear locks, free ports, and restart the cluster")
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
             }
         }
         .padding(.horizontal)
@@ -615,6 +609,23 @@ struct MenuBarView: View {
         if !state.peers.contains(where: { $0.id == state.localPeer.id }) {
             state.peers.append(state.localPeer)
             state.peers.sort { $0.name < $1.name }
+        }
+    }
+
+    private func fixCommonIssues() {
+        isFixing = true
+        Task {
+            let _ = await exo.clearUVLocks()
+            exo.stop()
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await MainActor.run {
+                state.status = .starting
+                exo.start(namespace: state.namespace)
+                DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+                    discovery.forceDiscovery()
+                }
+                isFixing = false
+            }
         }
     }
 }
