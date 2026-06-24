@@ -186,6 +186,7 @@ final class ExoManager: ObservableObject {
         statusTimer?.invalidate()
         statusTimer = nil
         statusText = "Stopping cluster..."
+        isRunning = false
 
         // Force kill the main process and all child processes
         if let process = process {
@@ -194,6 +195,7 @@ final class ExoManager: ObservableObject {
                 process.kill()
             }
         }
+        process = nil
 
         // Kill any leftover exo or uv processes that may hold locks
         Task {
@@ -202,8 +204,6 @@ final class ExoManager: ObservableObject {
                 "HOME": NSHomeDirectory()
             ], timeout: 10, onOutput: nil)
             await MainActor.run { [weak self] in
-                self?.process = nil
-                self?.isRunning = false
                 self?.statusText = "Cluster stopped"
             }
         }
