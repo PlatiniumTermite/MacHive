@@ -24,6 +24,7 @@
 		B6E7CE11DCD0944EA5F1A8DF /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 369A2EBE00CC23F191FA5B17 /* ServiceManagement.framework */; };
 		C7DB1F98570CD86F3B4EB8D7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B89796A6FFCDE94C8C234A5 /* AppKit.framework */; };
 		D16E4F24AC5C4143F6ACE80B /* WelcomeSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A8D942D5AEF26324B20DB6 /* WelcomeSetupSheet.swift */; };
+		F1F841D54BDF2C97CC288C41 /* FirewallHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43438C0F5F3B2E0E3CF04478 /* FirewallHelper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		3214F7D831B80C327D870E3B /* PeerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerDiscovery.swift; sourceTree = "<group>"; };
 		369A2EBE00CC23F191FA5B17 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		36A8D942D5AEF26324B20DB6 /* WelcomeSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeSetupSheet.swift; sourceTree = "<group>"; };
+		43438C0F5F3B2E0E3CF04478 /* FirewallHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirewallHelper.swift; sourceTree = "<group>"; };
 		488E5ACD40B9ACC4F939816D /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		659CA4421C8B5843F9AE4F56 /* NetworkHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHelper.swift; sourceTree = "<group>"; };
 		6C923F9DD157D64031ABE546 /* MacHive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacHive.entitlements; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 				2C472824F7D35856C6C583D2 /* DependencyInstaller.swift */,
 				863CD9BE36E1FB9FDA87D9E5 /* DiagnosticsView.swift */,
 				A5BB57A82D802C29E34E4823 /* ExoManager.swift */,
+				43438C0F5F3B2E0E3CF04478 /* FirewallHelper.swift */,
 				DB09475A228FFA2A54DFD615 /* FullErrorSheet.swift */,
 				C15467D9B9589906FFD04C49 /* Info.plist */,
 				6C923F9DD157D64031ABE546 /* MacHive.entitlements */,
@@ -187,6 +190,7 @@
 				0C3628A062ED3B734B6B60D1 /* DependencyInstaller.swift in Sources */,
 				994DD30078AAEF90AD44FC0D /* DiagnosticsView.swift in Sources */,
 				55E8904689CA60BACE8A63A0 /* ExoManager.swift in Sources */,
+				F1F841D54BDF2C97CC288C41 /* FirewallHelper.swift in Sources */,
 				3088DBEA821611DE0B83B7B4 /* FullErrorSheet.swift in Sources */,
 				3EA213E9A4B65CE9C8ABE271 /* MacHiveApp.swift in Sources */,
 				25F3D7ABD9C931D2C1507869 /* MenuBarView.swift in Sources */,

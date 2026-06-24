@@ -115,9 +115,7 @@ struct DiagnosticsView: View {
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Open Firewall Settings") {
-                        if let url = URL(string: "x-apple.systempreferences:com.apple.security.firewall") {
-                            NSWorkspace.shared.open(url)
-                        }
+                        FirewallHelper.openFirewallSettings()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
