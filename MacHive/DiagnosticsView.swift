@@ -8,6 +8,7 @@ struct DiagnosticsView: View {
     @State private var isRunning = false
     @State private var testingExo = false
     @State private var testResult: String? = nil
+    @State private var isFirewallOn = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -70,7 +71,7 @@ struct DiagnosticsView: View {
                 .cornerRadius(8)
             }
 
-            if Self.isFirewallEnabled {
+            if isFirewallOn {
                 Button("Open Firewall Settings") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.security.firewall") {
                         NSWorkspace.shared.open(url)
@@ -119,10 +120,13 @@ struct DiagnosticsView: View {
         isRunning = true
         results = []
 
-        let exoInstalled = ExoManager.exoIsInstalled
-        let exoRunning = exo.isRunning
+        Task {
+            let exoInstalled = ExoManager.exoIsInstalled
+            let exoRunning = exo.isRunning
+            let networkReachable = await Self.isNetworkReachableAsync
+            let firewallEnabled = await Self.isFirewallEnabledAsync
 
-        results = [
+            let newResults = [
             DiagnosticResult.check(
                 title: "macOS version",
                 passed: ProcessInfo.processInfo.isOperatingSystemAtLeast(OperatingSystemVersion(majorVersion: 13, minorVersion: 0, patchVersion: 0)),
@@ -150,21 +154,27 @@ struct DiagnosticsView: View {
             ),
             DiagnosticResult.check(
                 title: "Network available",
-                passed: Self.isNetworkReachable,
-                detail: Self.isNetworkReachable ? nil : "No active network connection"
+                passed: networkReachable,
+                detail: networkReachable ? nil : "No active network connection"
             ),
             DiagnosticResult.check(
                 title: "Firewall status",
-                passed: !Self.isFirewallEnabled,
-                detail: Self.isFirewallEnabled ? "macOS firewall may block local discovery" : "Firewall is off"
+                passed: !firewallEnabled,
+                detail: firewallEnabled ? "macOS firewall may block local discovery" : "Firewall is off"
             ),
             DiagnosticResult.check(
                 title: "Local network permission",
                 passed: true,
                 detail: "If macOS asked, click Allow"
             )
-        ]
-        isRunning = false
+            ]
+
+            await MainActor.run {
+                self.results = newResults
+                self.isFirewallOn = firewallEnabled
+                self.isRunning = false
+            }
+        }
     }
 
     private func testExo() {
@@ -184,36 +194,36 @@ struct DiagnosticsView: View {
     }
 
     private static var isNetworkReachable: Bool {
-        let monitor = NWPathMonitor()
-        var available = false
-        let semaphore = DispatchSemaphore(value: 0)
-        monitor.pathUpdateHandler = { path in
-            available = path.status == .satisfied
-            semaphore.signal()
+        get async {
+            let monitor = NWPathMonitor()
+            return await withCheckedContinuation { continuation in
+                monitor.pathUpdateHandler = { path in
+                    continuation.resume(returning: path.status == .satisfied)
+                    monitor.cancel()
+                }
+                monitor.start(queue: DispatchQueue.global(qos: .background))
+            }
         }
-        monitor.start(queue: DispatchQueue.global(qos: .background))
-        _ = semaphore.wait(timeout: .now() + 2)
-        monitor.cancel()
-        return available
+    }
+
+    private static var isNetworkReachableAsync: Bool {
+        get async {
+            await Self.isNetworkReachable
+        }
     }
 
     private static var isFirewallEnabled: Bool {
-        let task = Process()
-        task.launchPath = "/usr/bin/defaults"
-        task.arguments = ["read", "/Library/Preferences/com.apple.alf", "globalstate"]
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.availableData
-            if let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-                return text != "0"
-            }
-        } catch {
-            return false
+        get async {
+            let result = await runShell("/usr/bin/defaults read /Library/Preferences/com.apple.alf globalstate", environment: [:], timeout: 5, onOutput: nil)
+            let text = (result.stdout).trimmingCharacters(in: .whitespacesAndNewlines)
+            return text != "0"
         }
-        return false
+    }
+
+    private static var isFirewallEnabledAsync: Bool {
+        get async {
+            await Self.isFirewallEnabled
+        }
     }
 }
 

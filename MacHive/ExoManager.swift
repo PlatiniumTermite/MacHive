@@ -170,29 +170,15 @@ final class ExoManager: ObservableObject {
     }
 
     func testExoInstallation() async -> String {
-        let task = Process()
-        task.launchPath = "/bin/zsh"
-        let command = "cd \"\(exoDirectory)\" && uv run exo --help"
-        task.arguments = ["-c", command]
-        var env = ProcessInfo.processInfo.environment
-        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        task.environment = env
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-        do {
-            try task.run()
-            task.waitUntilExit()
-            let data = pipe.fileHandleForReading.availableData
-            let output = String(data: data, encoding: .utf8) ?? ""
-            if task.terminationStatus == 0 {
-                return "exo responded successfully."
-            } else {
-                return "exo test failed (code \(task.terminationStatus)): \(output)"
-            }
-        } catch {
-            return "Could not run exo test: \(error.localizedDescription)"
+        let result = await runShell("cd \"\(exoDirectory)\" && uv run exo --help", environment: [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 30, onOutput: nil)
+        if result.terminationStatus == 0 {
+            return "exo responded successfully."
+        } else {
+            let output = (result.stdout + "\n" + result.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
+            return "exo test failed (code \(result.terminationStatus)): \(output.isEmpty ? "No output" : output)"
         }
     }
 
