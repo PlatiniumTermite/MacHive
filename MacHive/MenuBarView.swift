@@ -79,6 +79,11 @@ struct MenuBarView: View {
                             .foregroundStyle(.orange)
                     }
                 }
+
+                Text(exo.statusText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()

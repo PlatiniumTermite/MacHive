@@ -11,6 +11,8 @@ struct DiagnosticsView: View {
     @State private var isFirewallOn = false
     @State private var rebuildingDashboard = false
     @State private var rebuildResult: String? = nil
+    @State private var clearingLocks = false
+    @State private var clearLocksResult: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -142,6 +144,13 @@ struct DiagnosticsView: View {
             .frame(maxWidth: .infinity)
             .disabled(rebuildingDashboard)
 
+            Button("Clear uv Locks") {
+                clearUVLocks()
+            }
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .disabled(clearingLocks)
+
             if let testResult = testResult, !testingExo {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: testResult.contains("failed") || testResult.contains("Could not") ? "exclamationmark.triangle" : "checkmark.circle")
@@ -174,6 +183,22 @@ struct DiagnosticsView: View {
                 .cornerRadius(8)
             }
 
+            if let clearLocksResult = clearLocksResult, !clearingLocks {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: clearLocksResult.contains("failed") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .foregroundStyle(clearLocksResult.contains("failed") ? .red : .green)
+                    Text("Locks: \(clearLocksResult)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
+            }
+
             Button("Copy Results") {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
@@ -184,6 +209,9 @@ struct DiagnosticsView: View {
                 }
                 if let rebuildResult = rebuildResult {
                     full += "\n\nDashboard: \(rebuildResult)"
+                }
+                if let clearLocksResult = clearLocksResult {
+                    full += "\n\nLocks: \(clearLocksResult)"
                 }
                 pasteboard.setString(full, forType: .string)
             }
@@ -279,6 +307,18 @@ struct DiagnosticsView: View {
             await MainActor.run {
                 rebuildResult = result
                 rebuildingDashboard = false
+            }
+        }
+    }
+
+    private func clearUVLocks() {
+        clearingLocks = true
+        clearLocksResult = "Clearing stale uv locks..."
+        Task {
+            let result = await exo.clearUVLocks()
+            await MainActor.run {
+                clearLocksResult = result
+                clearingLocks = false
             }
         }
     }

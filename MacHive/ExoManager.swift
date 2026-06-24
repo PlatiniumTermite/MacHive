@@ -12,6 +12,7 @@ final class ExoManager: ObservableObject {
     @Published var lastError: String? = nil
     @Published var exoPeerCount: Int = 0
     @Published var exoPeerStatus: String = "Not started"
+    @Published var statusText: String = "Not started"
     @Published private(set) var recentLogs: [String] = []
 
     private var process: Process?
@@ -33,10 +34,7 @@ final class ExoManager: ObservableObject {
         let networkIssues = NetworkHelper.checkNetworkRequirements()
         if !networkIssues.isEmpty {
             NSLog("MacHive: Network warnings: \(networkIssues.joined(separator: "; "))")
-            // Don't block startup, just log warnings
         }
-
-        isRunning = true
 
         guard ExoManager.exoIsInstalled else {
             lastError = "exo is not installed. Run setup first."
@@ -46,28 +44,66 @@ final class ExoManager: ObservableObject {
 
         let safeNamespace = namespace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "machive" : namespace
 
-        // Pre-sync exo dependencies in the background to avoid runtime failures
-        Task {
-            let syncTask = Process()
-            syncTask.launchPath = "/bin/zsh"
-            syncTask.currentDirectoryPath = exoDirectory
-            syncTask.arguments = ["-c", "uv sync"]
-            var syncEnv = ProcessInfo.processInfo.environment
-            syncEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-            syncEnv["HOME"] = NSHomeDirectory()
-            syncTask.environment = syncEnv
-            do {
-                try syncTask.run()
-            } catch {
-                NSLog("MacHive: uv sync failed to start: \(error.localizedDescription)")
-            }
-        }
+        isRunning = true
+        statusText = "Preparing cluster..."
 
+        Task {
+            // Step 1: Kill any stuck uv processes and clear stale locks
+            await clearUVLocksInternal()
+
+            // Step 2: Run uv sync first to avoid concurrent lock with uv run
+            let syncResult = await runShell("cd \"\(exoDirectory)\" && uv sync", environment: [
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+                "HOME": NSHomeDirectory()
+            ], timeout: 120, onOutput: { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendLog("[sync] \(line)")
+                }
+            })
+
+            if syncResult.terminationStatus != 0 {
+                await MainActor.run { [weak self] in
+                    let output = (syncResult.stdout + "\n" + syncResult.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
+                    self?.lastError = "uv sync failed: \(output.isEmpty ? "Unknown error" : output)"
+                    self?.isRunning = false
+                    self?.statusText = "Cluster failed to prepare"
+                }
+                return
+            }
+
+            // Step 3: Start exo
+            await MainActor.run { [weak self] in
+                self?.statusText = "Starting exo..."
+            }
+            await launchExo(namespace: safeNamespace)
+        }
+    }
+
+    func clearUVLocks() async -> String {
+        let result = await runShell("pkill -f 'uv run' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 10, onOutput: nil)
+        if result.terminationStatus == 0 {
+            return "Stale uv locks cleared. Stop and restart the cluster."
+        } else {
+            return "Lock clear finished (exit code \(result.terminationStatus))."
+        }
+    }
+
+    private func clearUVLocksInternal() async {
+        let _ = await runShell("pkill -f 'uv run' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 10, onOutput: nil)
+    }
+
+    private func launchExo(namespace: String) async {
         let task = Process()
         task.launchPath = "/bin/zsh"
         task.currentDirectoryPath = exoDirectory
 
-        let command = "uv run exo --namespace \(safeNamespace)"
+        let command = "uv run exo --namespace \(namespace)"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
@@ -108,6 +144,10 @@ final class ExoManager: ObservableObject {
         task.terminationHandler = { [weak self] task in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
+                stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                stderrPipe.fileHandleForReading.readabilityHandler = nil
+                _ = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                _ = stderrPipe.fileHandleForReading.readDataToEndOfFile()
                 self.process = nil
                 self.isRunning = false
                 if task.terminationStatus != 0, self.lastError == nil {
@@ -132,10 +172,12 @@ final class ExoManager: ObservableObject {
             process = task
             restartAttempts = 0
             startPolling()
+            statusText = "Cluster started"
         } catch {
             lastError = "Failed to start exo: \(error.localizedDescription)"
             isRunning = false
             process = nil
+            statusText = "Cluster failed to start"
         }
     }
 
