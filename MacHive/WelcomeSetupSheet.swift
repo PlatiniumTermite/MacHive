@@ -77,6 +77,24 @@ struct WelcomeSetupSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.title3)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Allow Local Network access")
+                            .font(.headline)
+                        Text("macOS will ask once. Click Allow so MacHive can find your other Macs.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Button("Request Local Network Access") {
+                            NotificationCenter.default.post(name: NSNotification.Name("MacHiveRequestLocalNetwork"), object: nil)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                    }
+                }
             }
 
             Divider()

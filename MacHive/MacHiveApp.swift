@@ -77,6 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: nil
         )
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(requestLocalNetwork),
+            name: NSNotification.Name("MacHiveRequestLocalNetwork"),
+            object: nil
+        )
+
         sharedExo.$isRunning
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateIcon() }
@@ -153,6 +160,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         } else {
             icon.status = sharedExo.isPreparing ? .connecting : .idle
         }
+    }
+
+    @objc private func requestLocalNetwork() {
+        sharedDiscovery.start()
+        sharedDiscovery.forceDiscovery()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
