@@ -366,11 +366,21 @@ struct MenuBarView: View {
             }
 
             if case .error(let msg) = state.status {
-                Text(msg)
+                HStack(alignment: .top, spacing: 6) {
+                    Text(msg)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(nil)
+                    Spacer()
+                    Button("Copy") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(msg, forType: .string)
+                    }
                     .font(.caption)
-                    .foregroundColor(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(nil)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.horizontal)
@@ -408,17 +418,25 @@ struct MenuBarView: View {
             }
 
             if state.showExoLogs && !exo.recentLogs.isEmpty {
-                ScrollView {
-                    Text(exo.recentLogs.suffix(20).joined(separator: "\n"))
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .lineLimit(nil)
+                VStack(alignment: .trailing, spacing: 4) {
+                    ScrollView {
+                        Text(exo.recentLogs.suffix(20).joined(separator: "\n"))
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .lineLimit(nil)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 60, maxHeight: 100)
+                    .padding(6)
+                    .background(Color.black.opacity(0.15))
+                    .cornerRadius(8)
+                    Button("Copy Logs") {
+                        exo.copyLogsToPasteboard()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
                 }
-                .frame(maxWidth: .infinity, minHeight: 60, maxHeight: 100)
-                .padding(6)
-                .background(Color.black.opacity(0.15))
-                .cornerRadius(8)
             }
 
             Button("Advanced Settings") {
