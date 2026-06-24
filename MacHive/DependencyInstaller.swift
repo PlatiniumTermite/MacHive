@@ -325,6 +325,31 @@ func runShell(_ command: String, environment: [String: String], timeout: TimeInt
 
             var stdout = ""
             var stderr = ""
+            var hasResumed = false
+            let lock = NSLock()
+
+            func finish() {
+                lock.lock()
+                defer { lock.unlock() }
+                guard !hasResumed else { return }
+                hasResumed = true
+
+                stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                stderrPipe.fileHandleForReading.readabilityHandler = nil
+
+                if let finalOut = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) {
+                    stdout.append(finalOut)
+                }
+                if let finalErr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) {
+                    stderr.append(finalErr)
+                }
+
+                continuation.resume(returning: ShellResult(
+                    stdout: stdout,
+                    stderr: stderr,
+                    terminationStatus: task.terminationStatus
+                ))
+            }
 
             stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
                 let data = handle.availableData
@@ -345,38 +370,33 @@ func runShell(_ command: String, environment: [String: String], timeout: TimeInt
                 }
             }
 
+            task.terminationHandler = { task in
+                finish()
+            }
+
             let timeoutTimer = DispatchSource.makeTimerSource(queue: .global())
             timeoutTimer.schedule(deadline: .now() + timeout)
             timeoutTimer.setEventHandler {
                 if task.isRunning {
                     task.terminate()
                 }
+                // If terminate doesn't kill it, force kill after 2 seconds
+                DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
+                    if task.isRunning {
+                        kill(task.processIdentifier, SIGKILL)
+                    }
+                    finish()
+                }
             }
             timeoutTimer.resume()
 
             do {
                 try task.run()
-                task.waitUntilExit()
             } catch {
                 stderr = error.localizedDescription
+                timeoutTimer.cancel()
+                finish()
             }
-
-            timeoutTimer.cancel()
-            stdoutPipe.fileHandleForReading.readabilityHandler = nil
-            stderrPipe.fileHandleForReading.readabilityHandler = nil
-
-            if let finalOut = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) {
-                stdout.append(finalOut)
-            }
-            if let finalErr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) {
-                stderr.append(finalErr)
-            }
-
-            continuation.resume(returning: ShellResult(
-                stdout: stdout,
-                stderr: stderr,
-                terminationStatus: task.terminationStatus
-            ))
         }
     }
 }
