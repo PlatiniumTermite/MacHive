@@ -8,6 +8,8 @@ struct MenuBarView: View {
     @State private var showingStopConfirmation = false
     @State private var showingDiagnostics = false
     @State private var showingWelcome = false
+    @State private var showingFullError = false
+    @State private var fullErrorMessage = ""
     @State private var manualPeerIP: String = ""
 
     init(discovery: PeerDiscovery, exo: ExoManager) {
@@ -61,6 +63,9 @@ struct MenuBarView: View {
         }
         .sheet(isPresented: $showingWelcome) {
             WelcomeSetupSheet(isPresented: $showingWelcome)
+        }
+        .sheet(isPresented: $showingFullError) {
+            FullErrorSheet(message: fullErrorMessage, isPresented: $showingFullError)
         }
     }
 
@@ -366,20 +371,29 @@ struct MenuBarView: View {
             }
 
             if case .error(let msg) = state.status {
-                HStack(alignment: .top, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(msg)
                         .font(.caption)
                         .foregroundColor(.red)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineLimit(nil)
-                    Spacer()
-                    Button("Copy") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(msg, forType: .string)
+                    HStack {
+                        Spacer()
+                        Button("Show Full") {
+                            fullErrorMessage = msg
+                            showingFullError = true
+                        }
+                        .font(.caption)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        Button("Copy") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(msg, forType: .string)
+                        }
+                        .font(.caption)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
                 }
             }
         }
