@@ -72,6 +72,10 @@ final class DependencyInstaller: ObservableObject {
         Homebrew.isInstalled && Python.isInstalled && Exo.isInstalled
     }
 
+    var isHomebrewMissing: Bool {
+        !Homebrew.isInstalled
+    }
+
     var manualInstallCommand: String {
         try? copyManualScriptToApplicationSupport()
         let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"

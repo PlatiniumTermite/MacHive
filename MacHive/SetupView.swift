@@ -6,6 +6,7 @@ struct SetupView: View {
     @Binding var isComplete: Bool
     @State private var hasStarted = false
     @State private var terminalOpened = false
+    @State private var completionTimer: Timer?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -36,13 +37,21 @@ struct SetupView: View {
                 if !terminalOpened {
                     terminalOpened = true
                     installer.openTerminalAndInstall()
+                    startCompletionPolling()
                 }
             }
         }
         .onAppear {
-            if !installer.isComplete {
+            if !installer.isComplete && !hasStarted {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    if !hasStarted {
+                    if installer.isHomebrewMissing {
+                        terminalOpened = true
+                        withAnimation {
+                            hasStarted = true
+                        }
+                        installer.openTerminalAndInstall()
+                        startCompletionPolling()
+                    } else {
                         withAnimation {
                             hasStarted = true
                         }
@@ -84,16 +93,36 @@ struct SetupView: View {
             .controlSize(.large)
 
             Button("Run in Terminal") {
+                terminalOpened = true
+                withAnimation {
+                    hasStarted = true
+                }
                 installer.openTerminalAndInstall()
+                startCompletionPolling()
             }
             .buttonStyle(.bordered)
             .font(.caption)
         }
     }
 
+    private func startCompletionPolling() {
+        completionTimer?.invalidate()
+        completionTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            Task { @MainActor in
+                if installer.isComplete {
+                    completionTimer?.invalidate()
+                    completionTimer = nil
+                    withAnimation {
+                        isComplete = true
+                    }
+                }
+            }
+        }
+    }
+
     private var setupContent: some View {
         VStack(spacing: 20) {
-            Text("Setting up MacHive...")
+            Text(terminalOpened ? "Installing in Terminal..." : "Setting up MacHive...")
                 .font(.title2)
                 .fontWeight(.semibold)
 
@@ -102,7 +131,7 @@ struct SetupView: View {
                     .progressViewStyle(.linear)
                     .frame(width: 280)
 
-                Text(installer.message)
+                Text(terminalOpened ? "Terminal is open. Enter your admin password if asked. MacHive will continue automatically when done." : installer.message)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(width: 280)
