@@ -3,6 +3,7 @@ import Foundation
 import Network
 
 struct DiagnosticsView: View {
+    @Environment(\.dismiss) private var dismiss
     @ObservedObject var exo: ExoManager
     let namespace: String
     @State private var results: [DiagnosticResult] = []
@@ -19,9 +20,17 @@ struct DiagnosticsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("MacHive Diagnostics")
-                .font(.title3)
-                .fontWeight(.bold)
+            HStack {
+                Text("MacHive Diagnostics")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                Spacer()
+                Button("Close") {
+                    dismissSheet()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
 
             Text("These checks help find common setup problems.")
                 .font(.caption)
@@ -310,6 +319,10 @@ struct DiagnosticsView: View {
         }
     }
 
+    private func dismissSheet() {
+        dismiss()
+    }
+
     private func testExo() {
         testingExo = true
         testResult = "Running exo test..."
@@ -376,14 +389,38 @@ struct DiagnosticsView: View {
 
     private static var isNetworkReachable: Bool {
         get async {
-            let monitor = NWPathMonitor()
-            return await withCheckedContinuation { continuation in
-                monitor.pathUpdateHandler = { path in
-                    continuation.resume(returning: path.status == .satisfied)
-                    monitor.cancel()
+            await withCheckedContinuation { continuation in
+                let monitor = NWPathMonitor()
+                let box = ContinuationBox(continuation: continuation, monitor: monitor)
+                monitor.pathUpdateHandler = { [box] path in
+                    box.resume(returning: path.status == .satisfied)
                 }
                 monitor.start(queue: DispatchQueue.global(qos: .background))
+                DispatchQueue.global().asyncAfter(deadline: .now() + 3.0) { [box] in
+                    box.resume(returning: false)
+                }
             }
+        }
+    }
+
+    private final class ContinuationBox: @unchecked Sendable {
+        private let continuation: CheckedContinuation<Bool, Never>
+        private let monitor: NWPathMonitor
+        private var resumed = false
+        private let lock = NSLock()
+
+        init(continuation: CheckedContinuation<Bool, Never>, monitor: NWPathMonitor) {
+            self.continuation = continuation
+            self.monitor = monitor
+        }
+
+        func resume(returning value: Bool) {
+            lock.lock()
+            defer { lock.unlock() }
+            guard !resumed else { return }
+            resumed = true
+            monitor.cancel()
+            continuation.resume(returning: value)
         }
     }
 
