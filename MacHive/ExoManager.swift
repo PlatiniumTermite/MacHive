@@ -144,7 +144,7 @@ final class ExoManager: ObservableObject {
         task.currentDirectoryPath = exoDirectory
 
         let exoBinary = "\(exoDirectory)/.venv/bin/exo"
-        let command = "\(exoBinary) --namespace \(namespace)"
+        let command = "\"\(exoBinary)\" --namespace \(namespace)"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
