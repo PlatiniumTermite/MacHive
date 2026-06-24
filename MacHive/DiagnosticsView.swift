@@ -4,6 +4,7 @@ import Network
 
 struct DiagnosticsView: View {
     @ObservedObject var exo: ExoManager
+    let namespace: String
     @State private var results: [DiagnosticResult] = []
     @State private var isRunning = false
     @State private var testingExo = false
@@ -117,7 +118,7 @@ struct DiagnosticsView: View {
 
             if !exo.isRunning && ExoManager.exoIsInstalled {
                 Button("Start AI Cluster") {
-                    exo.start()
+                    exo.start(namespace: namespace)
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity)
@@ -373,5 +374,5 @@ struct DiagnosticResult: Identifiable, Equatable {
 }
 
 #Preview {
-    DiagnosticsView(exo: ExoManager())
+    DiagnosticsView(exo: ExoManager(), namespace: "machive")
 }

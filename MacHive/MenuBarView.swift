@@ -44,7 +44,7 @@ struct MenuBarView: View {
             }
         }
         .sheet(isPresented: $showingDiagnostics) {
-            DiagnosticsView(exo: exo)
+            DiagnosticsView(exo: exo, namespace: state.namespace)
         }
     }
 
@@ -264,7 +264,6 @@ struct MenuBarView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)
-                .disabled(!state.selectedModelFits)
             }
         }
         .padding(.horizontal)
