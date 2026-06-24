@@ -328,9 +328,14 @@ final class ExoManager: ObservableObject {
             recentLogs.removeFirst(recentLogs.count - maxLogLines)
         }
 
-        // Parse exo logs for peer connection status
+        // Parse exo logs for peer connection status and errors
         Task { @MainActor [weak self] in
             guard let self = self else { return }
+            let lowercased = line.lowercased()
+            if lowercased.contains("different namespaces") || lowercased.contains("namespace") && lowercased.contains("mismatch") {
+                self.lastError = "Namespace mismatch: another Mac is using a different namespace. Open Settings → Advanced on every Mac and set the exact same namespace. Default is 'machive'."
+                self.statusText = "Namespace mismatch"
+            }
             if line.contains("Connected to peer") || line.contains("connected to peer") || line.contains("peer") && line.contains("connected") {
                 self.exoPeerStatus = "Peers connected"
             } else if line.contains("Waiting for peer") || line.contains("Listening") || line.contains("Node ID") {

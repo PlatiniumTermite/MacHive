@@ -358,6 +358,25 @@ struct MenuBarView: View {
                 }
             }
 
+            HStack(spacing: 8) {
+                Text("Namespace")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("'\(state.namespace)'")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
+                if state.namespace != "machive" {
+                    Button("Reset to machive") {
+                        state.namespace = "machive"
+                    }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.blue)
+                }
+            }
+
             if exo.isRunning && exo.exoPeerStatus != "Not started" {
                 HStack(spacing: 6) {
                     Image(systemName: exo.exoPeerCount > 0 ? "checkmark.circle.fill" : "hourglass")
@@ -469,9 +488,10 @@ struct MenuBarView: View {
                         .font(.callout)
                         .textFieldStyle(.roundedBorder)
                         .disabled(exo.isRunning)
-                    Text("All Macs must use the same namespace.")
+                    Text("All Macs must use the same namespace. Default is 'machive'. Only change if every Mac uses the same new value.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(8)
                 .background(Color.secondary.opacity(0.08))
