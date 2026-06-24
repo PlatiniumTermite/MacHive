@@ -191,7 +191,8 @@ final class ExoManager: ObservableObject {
                 _ = stderrPipe.fileHandleForReading.readDataToEndOfFile()
                 self.process = nil
                 self.isRunning = false
-                if self.stoppingManually {
+                let wasIntentionalStop = self.stoppingManually || self.statusText == "Stopping cluster..." || self.statusText == "Cluster stopped"
+                if wasIntentionalStop {
                     self.stoppingManually = false
                     self.lastError = nil
                 } else if task.terminationStatus != 0, self.lastError == nil {
