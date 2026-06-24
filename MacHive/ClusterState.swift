@@ -93,6 +93,9 @@ final class ClusterState: ObservableObject {
     @Published var namespace: String = UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive" {
         didSet { UserDefaults.standard.set(namespace, forKey: "exoNamespace") }
     }
+    @Published var autoSyncNamespace: Bool = UserDefaults.standard.bool(forKey: "autoSyncNamespace") {
+        didSet { UserDefaults.standard.set(autoSyncNamespace, forKey: "autoSyncNamespace") }
+    }
     @Published var showExoLogs: Bool = false
 
     var localPeer: Peer {
@@ -139,6 +142,10 @@ final class ClusterState: ObservableObject {
 
     func canRunModel(_ model: ExoModel) -> Bool {
         combinedRAMGB >= model.requiredRAMGB
+    }
+
+    var recommendedModel: ExoModel {
+        ExoModel.allCases.reversed().first { canRunModel($0) } ?? .llama3_8b
     }
 }
 

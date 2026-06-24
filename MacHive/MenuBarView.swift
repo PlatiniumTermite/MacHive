@@ -45,6 +45,11 @@ struct MenuBarView: View {
         .onChange(of: discovery.peers) { _ in
             updatePeers()
         }
+        .onChange(of: discovery.detectedForeignNamespaces) { namespaces in
+            if state.autoSyncNamespace, let foreign = namespaces.first, state.namespace != foreign {
+                state.namespace = foreign
+            }
+        }
         .onChange(of: exo.isRunning) { running in
             if running {
                 state.status = .running
@@ -168,18 +173,20 @@ struct MenuBarView: View {
             if !discovery.detectedForeignNamespaces.isEmpty {
                 let foreign = discovery.detectedForeignNamespaces.first ?? "unknown"
                 HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+                    Image(systemName: state.autoSyncNamespace ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(state.autoSyncNamespace ? .green : .orange)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Another Mac uses namespace '\(foreign)'")
+                        Text(state.autoSyncNamespace ? "Auto-switched namespace to '\(foreign)' to match other Mac" : "Another Mac uses namespace '\(foreign)'")
                             .font(.caption)
                             .fontWeight(.semibold)
-                        Button("Switch to '\(foreign)' to match") {
-                            state.namespace = foreign
+                        if !state.autoSyncNamespace {
+                            Button("Switch to '\(foreign)' to match") {
+                                state.namespace = foreign
+                            }
+                            .font(.caption)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.blue)
                         }
-                        .font(.caption)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.blue)
                     }
                     Spacer()
                 }
@@ -293,13 +300,25 @@ struct MenuBarView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.circle")
                         .font(.caption)
-                    Text("Needs \(state.selectedModel.requiredRAMGB)GB combined RAM · you have \(state.combinedRAMGB)GB. Start the cluster on more Macs to combine RAM.")
+                    Text("Needs \(state.selectedModel.requiredRAMGB)GB combined RAM · you have \(state.combinedRAMGB)GB. Start the cluster on more Macs to combine RAM, or switch to \(state.recommendedModel.rawValue).")
                         .font(.caption)
                 }
                 .foregroundColor(.red)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
                 .help("This model requires more combined RAM than is currently available from online Macs.")
+            } else if state.selectedModel != state.recommendedModel && state.onlinePeerCount >= 2 {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.circle")
+                        .font(.caption)
+                    Text("Recommended: \(state.recommendedModel.rawValue) fits your combined RAM. Click to switch.")
+                        .font(.caption)
+                }
+                .foregroundColor(.accentColor)
+                .onTapGesture {
+                    state.selectedModel = state.recommendedModel
+                }
+                .help("Switch to the largest model that fits your combined cluster RAM.")
             }
 
             if state.selectedModel.requiredRAMGB >= 40 && state.selectedModelFits {
@@ -474,6 +493,9 @@ struct MenuBarView: View {
                     }
 
                 Toggle("Auto-start cluster on launch", isOn: $state.autoStartCluster)
+                    .font(.callout)
+
+                Toggle("Auto-sync namespace with other Macs", isOn: $state.autoSyncNamespace)
                     .font(.callout)
 
                 Toggle("Show exo logs", isOn: $state.showExoLogs)
