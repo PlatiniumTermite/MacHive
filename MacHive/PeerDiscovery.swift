@@ -72,6 +72,28 @@ final class PeerDiscovery: ObservableObject {
         }
     }
 
+    func addPeerByIP(_ ip: String, name: String) {
+        updateQueue.async { [weak self] in
+            let peer = Peer(
+                id: name,
+                name: name,
+                ramGB: 0,
+                chip: "Unknown",
+                macModel: "Mac",
+                osVersion: "Unknown",
+                ipAddress: ip,
+                namespace: UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive",
+                discoveryMethod: "Manual",
+                isOnline: true,
+                lastSeen: Date()
+            )
+            self?.discovered[name] = peer
+            DispatchQueue.main.async { [weak self] in
+                self?.updatePeers()
+            }
+        }
+    }
+
     private func startAdvertising() {
         let parameters = NWParameters.tcp
         parameters.includePeerToPeer = true
@@ -253,6 +275,7 @@ final class PeerDiscovery: ObservableObject {
             osVersion: payload["os"] ?? "Unknown",
             ipAddress: payload["ip"] ?? "Unknown",
             namespace: payload["namespace"] ?? "unknown",
+            discoveryMethod: "UDP",
             isOnline: true,
             lastSeen: Date()
         )
@@ -281,6 +304,7 @@ final class PeerDiscovery: ObservableObject {
                 osVersion: txt["os"] ?? "Unknown",
                 ipAddress: txt["ip"] ?? "Unknown",
                 namespace: txt["namespace"] ?? "unknown",
+                discoveryMethod: "Bonjour",
                 isOnline: true,
                 lastSeen: Date()
             )
@@ -320,6 +344,7 @@ final class PeerDiscovery: ObservableObject {
                     osVersion: peer.osVersion,
                     ipAddress: peer.ipAddress,
                     namespace: peer.namespace,
+                    discoveryMethod: peer.discoveryMethod,
                     isOnline: false,
                     lastSeen: peer.lastSeen
                 )

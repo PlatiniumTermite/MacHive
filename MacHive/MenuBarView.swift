@@ -6,6 +6,7 @@ struct MenuBarView: View {
     @StateObject private var exo = ExoManager()
     @State private var showingStopConfirmation = false
     @State private var showingDiagnostics = false
+    @State private var manualPeerIP: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -166,7 +167,7 @@ struct MenuBarView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
-                            Text(peer.isOnline ? "Connected · \(peer.ipAddress)" : "Offline")
+                            Text(peer.isOnline ? "\(peer.discoveryMethod) · \(peer.ipAddress)" : "Offline")
                                 .font(.caption2)
                                 .foregroundStyle(peer.isOnline ? .green : .secondary)
                             if peer.namespace != state.namespace {
@@ -391,6 +392,23 @@ struct MenuBarView: View {
                 .background(Color.secondary.opacity(0.08))
                 .cornerRadius(8)
             }
+
+            HStack(spacing: 8) {
+                TextField("192.168.1.x", text: $manualPeerIP)
+                    .font(.caption)
+                    .textFieldStyle(.roundedBorder)
+                Button("Add Peer by IP") {
+                    if !manualPeerIP.isEmpty {
+                        discovery.addPeerByIP(manualPeerIP, name: "Manual Peer \(manualPeerIP)")
+                        manualPeerIP = ""
+                    }
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(manualPeerIP.isEmpty)
+            }
+            .frame(maxWidth: .infinity)
 
             HStack(spacing: 8) {
                 Button("Refresh Peers") {
