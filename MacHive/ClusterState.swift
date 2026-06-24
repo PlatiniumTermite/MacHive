@@ -220,9 +220,14 @@ enum SystemInfo {
         let result = sysctlbyname(key, &buffer, &size, nil, 0)
         guard result == 0 else { return "Apple Silicon" }
         let brand = String(cString: buffer)
-        let known = ["M1", "M2", "M3", "M4"]
-        for gen in known where brand.contains(gen) {
-            return gen
+        let patterns = [
+            "M4 Max", "M4 Pro", "M4 Ultra", "M4",
+            "M3 Max", "M3 Pro", "M3 Ultra", "M3",
+            "M2 Max", "M2 Pro", "M2 Ultra", "M2",
+            "M1 Max", "M1 Pro", "M1 Ultra", "M1"
+        ]
+        for pattern in patterns where brand.contains(pattern) {
+            return pattern
         }
         if brand.contains("Apple") {
             return "Apple Silicon"
