@@ -81,11 +81,19 @@ struct SetupView: View {
             }
             .frame(width: 280)
 
-            Text("This takes 10–30 minutes on first launch. MacHive can install everything in the background, or open Terminal and run it automatically.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(width: 280)
-                .multilineTextAlignment(.center)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("First launch setup")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                Text("MacHive will install everything automatically. If Homebrew is missing, Terminal will open and run the installer. You only need to enter your admin password when asked.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("This takes 10–30 minutes depending on your internet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(width: 280)
 
             Button("Install Automatically") {
                 withAnimation {
