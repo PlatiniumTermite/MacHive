@@ -68,7 +68,20 @@ final class ExoManager: ObservableObject {
             await removeExoPidfile()
             await killPortListeners()
 
-            // Step 2: Start exo (uv run will sync automatically if needed)
+            // Step 2: Verify ports are actually free before launching
+            let portsFree = await checkPortsFree()
+            if !portsFree {
+                await MainActor.run { [weak self] in
+                    self?.lastError = "Ports 52414/52415 are still in use after cleanup. Another exo process is running. Stop it manually or restart your Mac."
+                    self?.statusText = "Port blocked"
+                    self?.isPreparing = false
+                }
+                startWatchdogTimer?.invalidate()
+                startWatchdogTimer = nil
+                return
+            }
+
+            // Step 3: Start exo directly from the venv binary
             await MainActor.run { [weak self] in
                 self?.statusText = "Starting exo..."
             }
@@ -77,7 +90,7 @@ final class ExoManager: ObservableObject {
     }
 
     func clearUVLocks() async -> String {
-        let result = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+        let result = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/python' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "HOME": NSHomeDirectory()
         ], timeout: 10, onOutput: nil)
@@ -109,8 +122,16 @@ final class ExoManager: ObservableObject {
         ], timeout: 10, onOutput: nil)
     }
 
+    private func checkPortsFree() async -> Bool {
+        let result = await runShell("lsof -i tcp:52414,52415 2>/dev/null | grep LISTEN | wc -l", environment: [
+            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+        ], timeout: 5, onOutput: nil)
+        let count = Int(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        return count == 0
+    }
+
     private func clearUVLocksInternal() async {
-        let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+        let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/python' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "HOME": NSHomeDirectory()
         ], timeout: 10, onOutput: nil)
@@ -121,7 +142,8 @@ final class ExoManager: ObservableObject {
         task.launchPath = "/bin/zsh"
         task.currentDirectoryPath = exoDirectory
 
-        let command = "uv run exo --namespace \(namespace)"
+        let exoBinary = "\(exoDirectory)/.venv/bin/exo"
+        let command = "\(exoBinary) --namespace \(namespace)"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
@@ -181,6 +203,9 @@ final class ExoManager: ObservableObject {
                             self?.start()
                         }
                     }
+                } else {
+                    self.statusText = "Cluster failed to start"
+                    self.isPreparing = false
                 }
             }
         }
@@ -281,7 +306,7 @@ final class ExoManager: ObservableObject {
         Task {
             await removeExoPidfile()
             await killPortListeners()
-            let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+            let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/python' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
                 "HOME": NSHomeDirectory()
             ], timeout: 10, onOutput: nil)
