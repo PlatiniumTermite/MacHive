@@ -40,6 +40,7 @@ struct MenuBarView: View {
         .onChange(of: exo.isRunning) { running in
             if running {
                 state.status = .running
+                discovery.forceDiscovery()
             } else if state.status == .running || state.status == .starting || state.status == .ready {
                 state.status = .notRunning
             }
