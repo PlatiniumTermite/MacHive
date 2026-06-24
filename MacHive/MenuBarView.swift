@@ -165,6 +165,29 @@ struct MenuBarView: View {
             .padding(.top, 6)
             .padding(.bottom, 2)
 
+            if !discovery.detectedForeignNamespaces.isEmpty {
+                let foreign = discovery.detectedForeignNamespaces.first ?? "unknown"
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Another Mac uses namespace '\(foreign)'")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        Button("Switch to '\(foreign)' to match") {
+                            state.namespace = foreign
+                        }
+                        .font(.caption)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.blue)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.top, 6)
+                .padding(.bottom, 2)
+            }
+
             if state.peers.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     if discovery.isBrowsing {

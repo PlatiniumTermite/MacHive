@@ -24,6 +24,7 @@ final class PeerDiscovery: ObservableObject {
     @Published var peers: [Peer] = []
     @Published var error: String? = nil
     @Published var isBrowsing: Bool = false
+    @Published var detectedForeignNamespaces: [String] = []
 
     func start() {
         error = nil
@@ -364,6 +365,8 @@ final class PeerDiscovery: ObservableObject {
 
     private func updatePeers() {
         let list = Array(discovered.values)
+        let localNamespace = UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive"
+        let foreign = Set(list.map { $0.namespace }.filter { $0 != localNamespace && $0 != "unknown" }).sorted()
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             var peers = list
@@ -373,6 +376,7 @@ final class PeerDiscovery: ObservableObject {
             }
             peers.sort { $0.name < $1.name }
             self.peers = peers
+            self.detectedForeignNamespaces = foreign
         }
     }
 
