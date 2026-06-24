@@ -268,10 +268,7 @@ final class AnimatedStatusIcon: NSView {
 
     private let hexagonLayer = CAShapeLayer()
     private let ringLayer = CAShapeLayer()
-    private let dot1 = CAShapeLayer()
-    private let dot2 = CAShapeLayer()
-    private let dot3 = CAShapeLayer()
-    private let pulseLayer = CAShapeLayer()
+    private var rotationAnimation: CABasicAnimation?
 
     override var isFlipped: Bool { true }
 
@@ -293,111 +290,78 @@ final class AnimatedStatusIcon: NSView {
         super.layout()
         let size = min(bounds.width, bounds.height)
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
-        let hexRadius = size * 0.32
+        let hexRadius = size * 0.30
         let ringRadius = size * 0.42
 
         hexagonLayer.path = hexagonPath(center: center, radius: hexRadius).cgPath
         ringLayer.path = circlePath(center: center, radius: ringRadius).cgPath
-
-        let dotRadius = size * 0.055
-        let positions = hexagonPoints(center: center, radius: ringRadius * 1.08)
-        for (dot, pt) in zip([dot1, dot2, dot3], positions) {
-            dot.path = NSBezierPath(ovalIn: NSRect(x: pt.x - dotRadius, y: pt.y - dotRadius, width: dotRadius * 2, height: dotRadius * 2)).cgPath
-        }
-
-        pulseLayer.path = hexagonPath(center: center, radius: hexRadius).cgPath
     }
 
     private func setupLayers() {
         hexagonLayer.fillColor = NSColor.secondaryLabelColor.cgColor
         hexagonLayer.strokeColor = NSColor.clear.cgColor
+        hexagonLayer.lineWidth = 0
         layer?.addSublayer(hexagonLayer)
 
         ringLayer.fillColor = NSColor.clear.cgColor
         ringLayer.strokeColor = NSColor.tertiaryLabelColor.cgColor
-        ringLayer.lineWidth = 1.5
-        ringLayer.lineDashPattern = [4, 4]
+        ringLayer.lineWidth = 1.2
+        ringLayer.lineDashPattern = [3, 4]
+        ringLayer.opacity = 0.6
         layer?.addSublayer(ringLayer)
 
-        for dot in [dot1, dot2, dot3] {
-            dot.fillColor = NSColor.tertiaryLabelColor.cgColor
-            dot.strokeColor = NSColor.clear.cgColor
-            layer?.addSublayer(dot)
-        }
+        let breathe = CABasicAnimation(keyPath: "transform.scale")
+        breathe.fromValue = 0.95
+        breathe.toValue = 1.05
+        breathe.duration = 2.0
+        breathe.autoreverses = true
+        breathe.repeatCount = .greatestFiniteMagnitude
+        breathe.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        hexagonLayer.add(breathe, forKey: "breathe")
 
-        pulseLayer.fillColor = NSColor.clear.cgColor
-        pulseLayer.strokeColor = NSColor.systemGreen.cgColor
-        pulseLayer.lineWidth = 1.5
-        pulseLayer.opacity = 0
-        layer?.addSublayer(pulseLayer)
-
-        startAnimations()
         updateAppearance()
     }
 
     private func updateAppearance() {
         let color: NSColor
+        let ringOpacity: Float
+        let rotate: Bool
         switch status {
         case .idle:
             color = NSColor.secondaryLabelColor
-            pulseLayer.opacity = 0
-            ringLayer.isHidden = false
+            ringOpacity = 0.4
+            rotate = false
         case .connecting:
             color = NSColor.systemOrange
-            pulseLayer.opacity = 0
-            ringLayer.isHidden = false
+            ringOpacity = 0.7
+            rotate = true
         case .searching:
             color = NSColor.systemYellow
-            pulseLayer.opacity = 0
-            ringLayer.isHidden = false
+            ringOpacity = 0.7
+            rotate = true
         case .connected:
             color = NSColor.systemGreen
-            pulseLayer.opacity = 1
-            ringLayer.isHidden = false
+            ringOpacity = 0.9
+            rotate = false
         }
 
         hexagonLayer.fillColor = color.cgColor
-        ringLayer.strokeColor = color.withAlphaComponent(0.6).cgColor
-        for dot in [dot1, dot2, dot3] {
-            dot.fillColor = color.cgColor
+        ringLayer.strokeColor = color.cgColor
+        ringLayer.opacity = ringOpacity
+
+        if rotate, rotationAnimation == nil {
+            let rotation = CABasicAnimation(keyPath: "transform.rotation.z")
+            rotation.fromValue = 0
+            rotation.toValue = Double.pi * 2
+            rotation.duration = 6
+            rotation.repeatCount = .greatestFiniteMagnitude
+            rotation.timingFunction = CAMediaTimingFunction(name: .linear)
+            ringLayer.add(rotation, forKey: "rotate")
+            rotationAnimation = rotation
+        } else if !rotate {
+            ringLayer.removeAnimation(forKey: "rotate")
+            rotationAnimation = nil
         }
-        pulseLayer.strokeColor = color.cgColor
-    }
-
-    private func startAnimations() {
-        let rotation = CABasicAnimation(keyPath: "transform.rotation.z")
-        rotation.fromValue = 0
-        rotation.toValue = Double.pi * 2
-        rotation.duration = 8
-        rotation.repeatCount = .greatestFiniteMagnitude
-        ringLayer.add(rotation, forKey: "rotate")
-
-        let dots = [dot1, dot2, dot3]
-        for (index, dot) in dots.enumerated() {
-            let dotPulse = CABasicAnimation(keyPath: "transform.scale")
-            dotPulse.fromValue = 1.0
-            dotPulse.toValue = 1.6
-            dotPulse.duration = 1.2
-            dotPulse.autoreverses = true
-            dotPulse.repeatCount = .greatestFiniteMagnitude
-            dotPulse.beginTime = CACurrentMediaTime() + Double(index) * 0.4
-            dotPulse.fillMode = .both
-            dot.add(dotPulse, forKey: "pulse")
-        }
-
-        let pulseExpand = CABasicAnimation(keyPath: "transform.scale")
-        pulseExpand.fromValue = 1.0
-        pulseExpand.toValue = 1.5
-        pulseExpand.duration = 1.5
-        pulseExpand.repeatCount = .greatestFiniteMagnitude
-        pulseLayer.add(pulseExpand, forKey: "expand")
-
-        let pulseFade = CABasicAnimation(keyPath: "opacity")
-        pulseFade.fromValue = 0.6
-        pulseFade.toValue = 0
-        pulseFade.duration = 1.5
-        pulseFade.repeatCount = .greatestFiniteMagnitude
-        pulseLayer.add(pulseFade, forKey: "fade")
     }
 
     private func hexagonPath(center: CGPoint, radius: CGFloat) -> NSBezierPath {
@@ -410,13 +374,6 @@ final class AnimatedStatusIcon: NSView {
         }
         path.close()
         return path
-    }
-
-    private func hexagonPoints(center: CGPoint, radius: CGFloat) -> [CGPoint] {
-        return (0..<6).map { i in
-            let angle = CGFloat(i) * CGFloat.pi / 3 - CGFloat.pi / 2
-            return CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
-        }
     }
 
     private func circlePath(center: CGPoint, radius: CGFloat) -> NSBezierPath {
