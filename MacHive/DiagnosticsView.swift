@@ -78,15 +78,15 @@ struct DiagnosticsView: View {
 
             if !Self.isInApplications {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Move MacHive.app to /Applications folder for network permissions to work correctly.")
+                    Text("MacHive must be in /Applications for network permissions and local discovery to work correctly.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button("Open /Applications Folder") {
-                        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
+                    Button("Move MacHive to /Applications") {
+                        moveToApplications()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .frame(maxWidth: .infinity)
                 }
@@ -97,7 +97,7 @@ struct DiagnosticsView: View {
 
             if isFirewallOn {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("macOS firewall is ON. Turn it off or add MacHive to allowed apps.")
+                    Text("macOS firewall is ON. This blocks MacHive from discovering other Macs. Click the button below, then turn OFF the firewall.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(nil)
@@ -107,7 +107,7 @@ struct DiagnosticsView: View {
                             NSWorkspace.shared.open(url)
                         }
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     .frame(maxWidth: .infinity)
                 }
@@ -261,7 +261,7 @@ struct DiagnosticsView: View {
             DiagnosticResult.check(
                 title: "exo running",
                 passed: exoRunning,
-                detail: exoRunning ? "Yes" : "Not started"
+                detail: exoRunning ? "Yes" : "Click 'Start AI Cluster' above"
             ),
             DiagnosticResult.check(
                 title: "Network available",
@@ -326,6 +326,26 @@ struct DiagnosticsView: View {
 
     private static var isInApplications: Bool {
         Bundle.main.bundlePath.hasPrefix("/Applications/")
+    }
+
+    private func moveToApplications() {
+        let source = Bundle.main.bundleURL
+        let destination = URL(fileURLWithPath: "/Applications/\(source.lastPathComponent)")
+        Task {
+            let result = await runShell("rm -rf \"\(destination.path)\" && cp -R \"\(source.path)\" \"\(destination.path)\" && touch \"\(destination.path)\"", environment: [
+                "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+            ], timeout: 60, onOutput: nil)
+            await MainActor.run {
+                if result.terminationStatus == 0 {
+                    NSWorkspace.shared.open(destination)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        NSApplication.shared.terminate(nil)
+                    }
+                } else {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
+                }
+            }
+        }
     }
 
     private static var isNetworkReachable: Bool {
