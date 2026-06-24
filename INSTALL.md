@@ -5,9 +5,12 @@ This guide covers every way to install MacHive and its dependencies.
 ## Quick start (recommended)
 
 1. Download `MacHive.app` from the [Releases](https://github.com/PlatiniumTermite/MacHive/releases) page.
-2. Drag `MacHive.app` into `/Applications`.
-3. Double-click MacHive. It appears as a hive icon in the menu bar.
-4. On first launch, MacHive silently installs:
+2. **Important:** Move `MacHive.app` to `/Applications`. Dragging from Downloads often fails because of macOS permissions. Instead:
+   - Right-click `MacHive.app` in Downloads → **Copy**
+   - Open Finder, press **Cmd+Shift+G**, type `/Applications`, press Return
+   - Right-click in the folder → **Paste Item**
+3. Double-click MacHive in `/Applications`. It appears as a hive icon in the menu bar.
+4. On first launch, MacHive installs these dependencies automatically:
    - Homebrew
    - Python 3.13
    - uv (Python package manager)
@@ -73,11 +76,11 @@ To create a release `.app`:
 
 1. **Move to /Applications:** MacHive must be in `/Applications` for launch-at-login and some system permissions to work reliably.
 2. **Sandbox note:** MacHive disables the app sandbox because it needs to install Homebrew, Python, uv, Node.js, and the exo source on your Mac, and run `uv run exo` as a subprocess. This is why MacHive is distributed as a direct-download `.app` rather than through the Mac App Store.
-3. **Heterogeneous clusters are supported:** Each Mac in the cluster can have a different amount of RAM and a different M-series chip. MacHive adds the RAM together and shows each Mac's chip, model, RAM, macOS version, and IP in the peer list.
+3. **Heterogeneous clusters are supported:** Each Mac can have different RAM and a different M-series chip. MacHive adds RAM and CPU cores together and shows each Mac in the peer list.
 4. **Approve login item:** If you enable **Launch MacHive at login**, go to **System Settings → General → Login Items** and make sure MacHive is allowed.
 5. **Network permission:** The first time MacHive runs, macOS may ask to allow local network access. Click **Allow**.
 6. **Auto-start cluster:** In Settings, enable **Auto-start cluster on launch** so exo starts automatically when MacHive opens.
-7. **Namespace:** In Settings → Advanced Settings, all Macs must use the same cluster namespace (default is `machive`).
+7. **Auto-sync namespace:** In Settings, enable **Auto-sync namespace with other Macs** so MacHive automatically matches the namespace used by other Macs. Default is `machive`.
 
 ## Perfect setup checklist for real-world use
 
@@ -87,7 +90,7 @@ Do this on every Mac in the cluster:
 2. **Allow local network access** when macOS asks. If you missed it, go to **System Settings → Privacy & Security → Local Network** and enable MacHive.
 3. **Turn off macOS firewall** or add MacHive to the allowed list: **System Settings → Network → Firewall**.
 4. **Connect all Macs to the same WiFi network**. Avoid guest networks.
-5. **Use the same namespace** on every Mac. Default is `machive`. Only change it if every Mac uses the same new value.
+5. **Use the same namespace** on every Mac. Default is `machive`. Enable **Auto-sync namespace** in Settings so MacHive handles this automatically.
 6. **Click Start AI Cluster** on every Mac.
 7. **Wait 30–60 seconds** for exo to discover peers and serve the chat page.
 8. **Click Open Chat**.

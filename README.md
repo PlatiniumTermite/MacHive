@@ -15,24 +15,39 @@ MacHive turns your Apple Silicon Macs into a distributed AI cluster. Run large l
 
 > Built on [exo](https://github.com/exo-explore/exo) — the distributed inference framework for Apple Silicon.
 
+## Perfect Setup Checklist (do this on every Mac)
+
+- [ ] macOS 13 or later (Apple Silicon M1/M2/M3/M4)
+- [ ] Download `MacHive.app` from [Releases](https://github.com/PlatiniumTermite/MacHive/releases)
+- [ ] Move `MacHive.app` to `/Applications` (right-click → Copy, then paste into `/Applications`)
+- [ ] Launch MacHive. If macOS asks, click **Allow** for Local Network access
+- [ ] Wait for first-time setup to finish (10–30 minutes, installs Homebrew/Python/uv/Node/exo)
+- [ ] Turn OFF macOS firewall: System Settings → Network → Firewall → OFF
+- [ ] Connect all Macs to the same WiFi network (not guest networks)
+- [ ] Click **Start AI Cluster** on every Mac
+- [ ] Wait for status to show **Ready**, then click **Open Chat**
+
 ## Quick Start
 
 1. Download `MacHive.app` from the [Releases](https://github.com/PlatiniumTermite/MacHive/releases) page.
-2. Drag it to `/Applications` (required for network permissions).
-3. Launch MacHive on each Mac you want in the cluster.
-4. First launch installs dependencies automatically (10–30 minutes).
-5. Click **Start AI Cluster** on each Mac.
-6. Click **Open Chat** to use the cluster at `http://localhost:52415`.
+2. Move it to `/Applications` (dragging from Downloads often fails; use Copy + Paste).
+3. Launch MacHive. It appears as a hive icon in the menu bar.
+4. First launch installs dependencies automatically. A setup window shows live progress.
+5. Once setup finishes, click the menu bar icon and click **Start AI Cluster**.
+6. Repeat on every Mac you want in the cluster.
+7. When status shows **Ready**, click **Open Chat** to use the cluster at `http://localhost:52415`.
 
 That's it. No Python environments, no config files, no terminal commands.
 
 ## What each Mac shows
 
-- **Peer list**: every Mac with its chip, RAM, model, macOS version, and IP address.
-- **Combined RAM**: total RAM available for the selected model.
-- **Model picker**: choose Llama 3, Mistral, or Qwen. MacHive tells you if the model fits.
-- **Settings**: auto-start cluster, launch at login, show live exo logs, change cluster namespace.
+- **Peer list**: every Mac with chip, RAM, CPU cores, model, macOS version, and IP address.
+- **Combined RAM & CPU**: total resources available for the selected model.
+- **Model picker**: choose Llama 3, Mistral, Qwen, DeepSeek, Mixtral. MacHive tells you if it fits and recommends the best one.
+- **Auto-sync namespace**: MacHive automatically matches the namespace used by other Macs.
+- **Settings**: auto-start cluster, launch at login, show live exo logs, auto-sync namespace.
 - **Diagnostics**: one-click checks for macOS, app location, firewall, exo status, network.
+- **Test Cluster**: verifies the server is responding before opening the chat.
 
 ## Why MacHive?
 
@@ -97,17 +112,19 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 
 ## How to use
 
-1. Launch MacHive on **every Mac** you want in the cluster.
-2. Wait for the first-time setup to finish on each Mac. The setup window shows a live checklist for Homebrew, Python 3.12, uv, Node.js, and the exo source, so you always know exactly what is happening.
-3. Click the hive icon in the menu bar. MacHive uses both **Bonjour and UDP broadcast** to find peers for the UI display, showing each Mac's chip and RAM. If no other Mac is found, MacHive still works on this Mac as a single-node cluster.
-4. If peers do not appear in the menu bar, click **Diagnostics** to check common issues, then click **Test exo** to verify the installation can run a simple command.
-5. Select a model from the dropdown. Macs can have different RAM sizes; MacHive adds them together and disables any model that would not fit in the combined total.
-6. **Important:** Click **Start AI Cluster** on **every Mac** in the cluster. exo uses its own libp2p mDNS discovery to find other exo instances running with the same namespace (`machive`). All Macs must be running exo simultaneously to form a cluster.
-7. Once the status shows *Running*, the button becomes **Open Chat** and opens `http://localhost:52415` in your default browser.
-8. Choose the same model in the exo chat UI and start chatting. You should see in the exo logs that multiple peers are connected.
-9. Click **Stop Cluster** to stop the exo process on this Mac.
+1. **Install on every Mac** using the Perfect Setup Checklist above.
+2. **Launch MacHive** on each Mac. It installs dependencies automatically on first launch.
+3. **Click the hive icon** in the menu bar.
+4. MacHive discovers other Macs automatically using **Bonjour + UDP broadcast + UDP multicast**. You see them in the peer list.
+5. If a different namespace is detected, MacHive shows a banner. With **Auto-sync namespace** enabled (default ON), it switches automatically.
+6. Select a model. MacHive shows if it fits and recommends the largest model that fits your combined RAM.
+7. Click **Start AI Cluster** on **every Mac**. All Macs must be running exo at the same time.
+8. Wait for status to show **Ready** (green dot, 2+ Macs, model fits).
+9. Click **Open Chat** or **Test Cluster** to open the chat at `http://localhost:52415`.
+10. Choose the model in the exo chat UI and start chatting.
+11. Click **Stop Cluster** to stop exo on this Mac.
 
-**Note:** The peer list in MacHive's menu bar shows which Macs are running MacHive. The actual AI cluster formation happens inside exo using libp2p. Check the exo logs (click "Copy exo Logs") to verify peers are connected.
+**Tip:** If peers do not appear, click **Diagnostics** and fix any red checks. Then click **Run Checks Again**.
 
 ## Troubleshooting Clustering
 
@@ -122,25 +139,34 @@ Then build (`Cmd+B`) and run (`Cmd+R`) in Xcode.
 3. **Monitor CPU usage** - Open Activity Monitor on both Macs, look for `exo` process
 4. **Ask a question** - Both Macs should show 20-40% CPU usage simultaneously
 
-### If clustering doesn't work:
+### Common problems and fixes
 
-**Symptom:** Only one Mac gets hot when asking questions
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| "MacHive not in /Applications" | App is in Downloads | Copy `MacHive.app` to `/Applications` and relaunch |
+| "Firewall is ON" | macOS firewall blocks discovery | Turn OFF firewall in System Settings → Network → Firewall |
+| "daemon already running" | Old exo process is stuck | Click **Stop Cluster**, wait 5 seconds, click **Start AI Cluster** |
+| "Different namespaces" | Macs use different cluster names | Enable **Auto-sync namespace** in Settings, or click **Switch to match** |
+| "Cluster start timed out" | exo took too long | Click **Stop Cluster**, then **Start AI Cluster** again. First launch downloads models. |
+| Peers don't appear | Network/firewall issue | Check same WiFi, firewall off, Local Network permission allowed. Click **Diagnostics**. |
+| Only one Mac works | exo did not connect peers | Wait 60 seconds. Check exo logs for "Connected to peer". Restart both Macs. |
 
-**Fixes:**
-1. **Check same WiFi** - All Macs must be on the same WiFi network (not Ethernet + WiFi mix)
-2. **Disable firewall** - Go to System Settings → Network → Firewall → Turn Off (or add MacHive to allowed apps)
-3. **Check logs for errors** - Click "Copy exo Logs" and look for connection errors
-4. **Restart both Macs** - Sometimes mDNS cache needs clearing
-5. **Use same exo version** - Make sure all Macs installed MacHive at the same time
+### If clustering still doesn't work:
 
-**Still not working?** Open an issue on GitHub with logs from both Macs.
+1. **Check same WiFi** - All Macs must be on the same WiFi network (avoid Ethernet + WiFi mix, avoid guest networks)
+2. **Disable firewall** - Go to System Settings → Network → Firewall → Turn Off
+3. **Check logs** - Click **Copy exo Logs** in MacHive and look for connection errors
+4. **Check namespace** - All Macs must show the same namespace under Status
+5. **Restart both Macs** - Sometimes mDNS cache needs clearing
+6. **Same MacHive version** - Install the same release on all Macs
+
+**Still not working?** Open an issue on GitHub and paste the exo logs from both Macs.
 
 ## Known limitations
 
 - MacHive disables the macOS app sandbox because it must install Homebrew, Python, uv, Node.js, and the exo source outside the app container, and run `uv run exo` as a subprocess. This means MacHive is distributed as a direct-download `.app`, not through the Mac App Store.
-- Currently tested with 2 Macs; larger clusters are not yet verified.
+- Multi-Mac clustering is provided by exo. MacHive makes it easy to start and monitor, but the actual distributed inference is done by exo.
 - The model dropdown in the menu bar is used to validate that your combined RAM can fit the selected model. The actual model selection happens inside the exo chat UI.
-- The menu bar only shows the four built-in choices: Llama 3 8B, Llama 3 70B, Qwen 2.5 32B, and Mistral 7B. Other exo-supported models must be selected from the chat UI or launched from the terminal.
 - Launch-at-login uses `SMAppService` on macOS 13+ and may require approving MacHive in **System Settings → General → Login Items**.
 - Running exo for the first time may download model weights, which can take several minutes depending on your internet connection.
 
