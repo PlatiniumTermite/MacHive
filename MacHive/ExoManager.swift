@@ -145,6 +145,7 @@ final class ExoManager: ObservableObject {
 
         let exoBinary = "\(exoDirectory)/.venv/bin/exo"
         let backgroundMode = UserDefaults.standard.bool(forKey: "MacHiveBackgroundMode")
+        let performanceMode = UserDefaults.standard.bool(forKey: "MacHivePerformanceMode")
         let prefix = backgroundMode ? "nice -n 10" : ""
         let command = "\(prefix) \"\(exoBinary)\" --namespace \(namespace)"
         task.arguments = ["-c", command]
@@ -154,6 +155,11 @@ final class ExoManager: ObservableObject {
         env["RUST_LOG"] = "info,libp2p=debug,exo=debug"
         env["LIBP2P_FORCE_PNET"] = "0"
         env["HOME"] = NSHomeDirectory()
+        if performanceMode {
+            env["EXO_PERFORMANCE_MODE"] = "1"
+            env["OMP_NUM_THREADS"] = "\(SystemInfo.totalCPUThreads)"
+            env["RAYON_NUM_THREADS"] = "\(SystemInfo.totalCPUThreads)"
+        }
         task.environment = env
 
         let stdoutPipe = Pipe()

@@ -100,6 +100,17 @@ final class ClusterState: ObservableObject {
     @Published var backgroundMode: Bool = UserDefaults.standard.bool(forKey: "MacHiveBackgroundMode") {
         didSet {
             UserDefaults.standard.set(backgroundMode, forKey: "MacHiveBackgroundMode")
+            if backgroundMode {
+                performanceMode = false
+            }
+        }
+    }
+    @Published var performanceMode: Bool = UserDefaults.standard.bool(forKey: "MacHivePerformanceMode") {
+        didSet {
+            UserDefaults.standard.set(performanceMode, forKey: "MacHivePerformanceMode")
+            if performanceMode {
+                backgroundMode = false
+            }
         }
     }
 

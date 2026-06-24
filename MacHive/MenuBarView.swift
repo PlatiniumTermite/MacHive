@@ -504,6 +504,17 @@ struct MenuBarView: View {
                         }
                     }
 
+                Toggle("Performance mode", isOn: $state.performanceMode)
+                    .font(.callout)
+                    .help("Max CPU/RAM usage for fastest inference when both Macs are dedicated to AI")
+                    .onChange(of: state.performanceMode) { _ in
+                        if exo.isRunning {
+                            exo.stop()
+                            state.status = .starting
+                            exo.start(namespace: state.namespace)
+                        }
+                    }
+
                 Toggle("Show exo logs", isOn: $state.showExoLogs)
                     .font(.callout)
             }
