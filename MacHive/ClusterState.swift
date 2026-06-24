@@ -53,6 +53,7 @@ struct Peer: Identifiable, Hashable {
     let id: String
     let name: String
     let ramGB: Int
+    let cpuThreads: Int
     let chip: String
     let macModel: String
     let osVersion: String
@@ -71,7 +72,7 @@ struct Peer: Identifiable, Hashable {
     }
 
     var displayInfo: String {
-        "\(chip) · \(ramGB) GB RAM · \(macModel) · macOS \(osVersion)"
+        "\(chip) · \(ramGB) GB RAM · \(cpuThreads) cores · \(macModel) · macOS \(osVersion)"
     }
 }
 
@@ -99,6 +100,7 @@ final class ClusterState: ObservableObject {
             id: Host.current().localizedName ?? UUID().uuidString,
             name: Host.current().localizedName ?? "This Mac",
             ramGB: SystemInfo.totalRAMGB,
+            cpuThreads: SystemInfo.totalCPUThreads,
             chip: SystemInfo.chipModel,
             macModel: SystemInfo.macModel,
             osVersion: SystemInfo.osVersion,
@@ -114,6 +116,11 @@ final class ClusterState: ObservableObject {
         // Always include the local peer with its real RAM, plus any remote online peers
         let remoteOnline = peers.filter { $0.isOnline && $0.id != localPeer.id }
         return localPeer.ramGB + remoteOnline.reduce(0) { $0 + $1.ramGB }
+    }
+
+    var combinedCPUThreads: Int {
+        let remoteOnline = peers.filter { $0.isOnline && $0.id != localPeer.id }
+        return localPeer.cpuThreads + remoteOnline.reduce(0) { $0 + $1.cpuThreads }
     }
 
     var onlinePeerCount: Int {
@@ -153,6 +160,16 @@ enum SystemInfo {
     static var totalRAMGB: Int {
         let bytes = ProcessInfo.processInfo.physicalMemory
         return max(1, Int(bytes / (1024 * 1024 * 1024)))
+    }
+
+    static var totalCPUThreads: Int {
+        var size = 0
+        sysctlbyname("hw.ncpu", nil, &size, nil, 0)
+        guard size > 0 else { return ProcessInfo.processInfo.processorCount }
+        var value = 0
+        let result = sysctlbyname("hw.ncpu", &value, &size, nil, 0)
+        guard result == 0 else { return ProcessInfo.processInfo.processorCount }
+        return max(1, value)
     }
 
     static var macModel: String {

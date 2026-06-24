@@ -89,6 +89,7 @@ final class PeerDiscovery: ObservableObject {
                 id: name,
                 name: name,
                 ramGB: 0,
+                cpuThreads: 0,
                 chip: "Unknown",
                 macModel: "Mac",
                 osVersion: "Unknown",
@@ -169,6 +170,7 @@ final class PeerDiscovery: ObservableObject {
     private func txtRecord() -> NWTXTRecord {
         var record = NWTXTRecord()
         record["ram"] = "\(SystemInfo.totalRAMGB)"
+        record["cpu"] = "\(SystemInfo.totalCPUThreads)"
         record["chip"] = SystemInfo.chipModel
         record["model"] = SystemInfo.macModel
         record["os"] = SystemInfo.osVersion
@@ -291,6 +293,7 @@ final class PeerDiscovery: ObservableObject {
         let payload: [String: String] = [
             "name": Host.current().localizedName ?? "MacHive",
             "ram": "\(SystemInfo.totalRAMGB)",
+            "cpu": "\(SystemInfo.totalCPUThreads)",
             "chip": SystemInfo.chipModel,
             "model": SystemInfo.macModel,
             "os": SystemInfo.osVersion,
@@ -317,6 +320,7 @@ final class PeerDiscovery: ObservableObject {
             id: name,
             name: name,
             ramGB: parseInt(payload["ram"] ?? "0"),
+            cpuThreads: parseInt(payload["cpu"] ?? "0"),
             chip: payload["chip"] ?? "Apple Silicon",
             macModel: payload["model"] ?? "Mac",
             osVersion: payload["os"] ?? "Unknown",
@@ -346,6 +350,7 @@ final class PeerDiscovery: ObservableObject {
                 id: name,
                 name: name,
                 ramGB: parseInt(txt["ram"] ?? "0"),
+                cpuThreads: parseInt(txt["cpu"] ?? "0"),
                 chip: txt["chip"] ?? "Apple Silicon",
                 macModel: txt["model"] ?? "Mac",
                 osVersion: txt["os"] ?? "Unknown",
@@ -389,6 +394,7 @@ final class PeerDiscovery: ObservableObject {
                     id: peer.id,
                     name: peer.name,
                     ramGB: peer.ramGB,
+                    cpuThreads: peer.cpuThreads,
                     chip: peer.chip,
                     macModel: peer.macModel,
                     osVersion: peer.osVersion,

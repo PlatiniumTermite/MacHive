@@ -103,7 +103,7 @@ struct MenuBarView: View {
                     Circle()
                         .fill(state.clusterReady ? Color.green : (state.status == .running || state.status == .ready ? Color.orange : (exo.isPreparing ? Color.yellow : Color.gray)))
                         .frame(width: 8, height: 8)
-                    Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") · \(state.combinedRAMGB) GB")
+                    Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") · \(state.combinedRAMGB) GB RAM · \(state.combinedCPUThreads) cores")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     if state.clusterReady {
@@ -319,6 +319,13 @@ struct MenuBarView: View {
                     exo.openChat()
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+
+                Button("Test Cluster") {
+                    exo.testCluster()
+                }
+                .buttonStyle(.bordered)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)
 

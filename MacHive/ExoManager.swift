@@ -274,6 +274,27 @@ final class ExoManager: ObservableObject {
         }
     }
 
+    func testCluster() {
+        guard let url = URL(string: "http://localhost:52415") else { return }
+        let request = URLRequest(url: url, timeoutInterval: 5.0)
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            Task { @MainActor [weak self] in
+                if let error = error {
+                    self?.lastError = "Cluster test failed: server is not reachable. Error: \(error.localizedDescription)"
+                    return
+                }
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    self?.statusText = "Cluster test passed: server is responding"
+                    self?.lastError = nil
+                    NSWorkspace.shared.open(self?.dashboardURL ?? url)
+                } else {
+                    self?.lastError = "Cluster test failed: server returned status \((response as? HTTPURLResponse)?.statusCode ?? 0)"
+                }
+            }
+        }
+        task.resume()
+    }
+
     func openChat() {
         guard let url = URL(string: "http://localhost:52415") else { return }
         let request = URLRequest(url: url, timeoutInterval: 3.0)
