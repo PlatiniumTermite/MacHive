@@ -75,12 +75,14 @@ final class ClusterState: ObservableObject {
     }
 
     var combinedRAMGB: Int {
-        let online = peers.filter(\.isOnline)
-        return online.reduce(0) { $0 + $1.ramGB }
+        // Always include the local peer with its real RAM, plus any remote online peers
+        let remoteOnline = peers.filter { $0.isOnline && $0.id != localPeer.id }
+        return localPeer.ramGB + remoteOnline.reduce(0) { $0 + $1.ramGB }
     }
 
     var onlinePeerCount: Int {
-        peers.filter(\.isOnline).count
+        let remoteOnline = peers.filter { $0.isOnline && $0.id != localPeer.id }
+        return 1 + remoteOnline.count
     }
 
     var selectedModelFits: Bool {

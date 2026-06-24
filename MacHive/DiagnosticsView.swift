@@ -70,6 +70,16 @@ struct DiagnosticsView: View {
                 .cornerRadius(8)
             }
 
+            if Self.isFirewallEnabled {
+                Button("Open Firewall Settings") {
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.security.firewall") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity)
+            }
+
             Button("Run Checks Again") {
                 runChecks()
             }

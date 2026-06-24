@@ -252,6 +252,14 @@ struct MenuBarView: View {
                     Spacer()
                 }
             }
+
+            if case .error(let msg) = state.status {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(nil)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 8)

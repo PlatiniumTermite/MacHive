@@ -44,20 +44,21 @@ final class ExoManager: ObservableObject {
             return
         }
 
-        // Pre-sync exo dependencies to avoid runtime failures
-        let syncTask = Process()
-        syncTask.launchPath = "/bin/zsh"
-        syncTask.currentDirectoryPath = exoDirectory
-        syncTask.arguments = ["-c", "uv sync"]
-        var syncEnv = ProcessInfo.processInfo.environment
-        syncEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        syncEnv["HOME"] = NSHomeDirectory()
-        syncTask.environment = syncEnv
-        do {
-            try syncTask.run()
-            syncTask.waitUntilExit()
-        } catch {
-            NSLog("MacHive: uv sync failed: \(error.localizedDescription)")
+        // Pre-sync exo dependencies in the background to avoid runtime failures
+        Task {
+            let syncTask = Process()
+            syncTask.launchPath = "/bin/zsh"
+            syncTask.currentDirectoryPath = exoDirectory
+            syncTask.arguments = ["-c", "uv sync"]
+            var syncEnv = ProcessInfo.processInfo.environment
+            syncEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+            syncEnv["HOME"] = NSHomeDirectory()
+            syncTask.environment = syncEnv
+            do {
+                try syncTask.run()
+            } catch {
+                NSLog("MacHive: uv sync failed to start: \(error.localizedDescription)")
+            }
         }
 
         let task = Process()
