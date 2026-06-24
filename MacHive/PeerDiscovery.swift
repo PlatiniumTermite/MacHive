@@ -316,6 +316,11 @@ final class PeerDiscovery: ObservableObject {
 
     private func handleUDP(payload: [String: String]) {
         let name = payload["name"] ?? "Unknown Mac"
+        let senderIP = payload["ip"] ?? "Unknown"
+        // Ignore UDP broadcasts from this Mac to avoid listing ourselves twice
+        if senderIP == NetworkHelper.getLocalIPAddress(), senderIP != "Unknown" {
+            return
+        }
         let peer = Peer(
             id: name,
             name: name,
@@ -376,7 +381,12 @@ final class PeerDiscovery: ObservableObject {
             guard let self = self else { return }
             var peers = list
             let local = ClusterState().localPeer
-            if !peers.contains(where: { $0.id == local.id }) {
+            let isLocalAlreadyPresent = peers.contains { peer in
+                peer.id == local.id ||
+                (peer.name == local.name && peer.name != "Unknown Mac") ||
+                (peer.ipAddress == local.ipAddress && peer.ipAddress != "Unknown")
+            }
+            if !isLocalAlreadyPresent {
                 peers.append(local)
             }
             peers.sort { $0.name < $1.name }
