@@ -46,9 +46,9 @@ final class ExoManager: ObservableObject {
         let safeNamespace = namespace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "machive" : namespace
 
         isPreparing = true
-        statusText = "Preparing cluster..."
+        statusText = "Starting exo..."
         startWatchdogTimer?.invalidate()
-        startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
+        startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 180.0, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 if self.statusText != "Cluster started" && self.statusText != "Cluster stopped" {
@@ -62,29 +62,7 @@ final class ExoManager: ObservableObject {
             // Step 1: Kill any stuck uv processes and clear stale locks
             await clearUVLocksInternal()
 
-            // Step 2: Run uv sync first to avoid concurrent lock with uv run
-            let syncResult = await runShell("cd \"\(exoDirectory)\" && uv sync", environment: [
-                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
-                "HOME": NSHomeDirectory()
-            ], timeout: 120, onOutput: { [weak self] line in
-                Task { @MainActor [weak self] in
-                    self?.appendLog("[sync] \(line)")
-                }
-            })
-
-            if syncResult.terminationStatus != 0 {
-                await MainActor.run { [weak self] in
-                    let output = (syncResult.stdout + "\n" + syncResult.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
-                    self?.lastError = "uv sync failed: \(output.isEmpty ? "Unknown error" : output)"
-                    self?.isPreparing = false
-                    self?.statusText = "Cluster failed to prepare"
-                    self?.startWatchdogTimer?.invalidate()
-                    self?.startWatchdogTimer = nil
-                }
-                return
-            }
-
-            // Step 3: Start exo
+            // Step 2: Start exo (uv run will sync automatically if needed)
             await MainActor.run { [weak self] in
                 self?.statusText = "Starting exo..."
             }
