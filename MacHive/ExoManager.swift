@@ -161,7 +161,18 @@ final class ExoManager: ObservableObject {
     }
 
     func openChat() {
-        NSWorkspace.shared.open(dashboardURL)
+        guard let url = URL(string: "http://localhost:52415") else { return }
+        let request = URLRequest(url: url, timeoutInterval: 3.0)
+        let task = URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
+            Task { @MainActor [weak self] in
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    NSWorkspace.shared.open(self?.dashboardURL ?? url)
+                } else {
+                    self?.lastError = "Chat server is not responding at localhost:52415. exo may still be starting or the dashboard build failed. Click Copy Logs and wait 30 seconds, then try again."
+                }
+            }
+        }
+        task.resume()
     }
 
     func copyLogsToPasteboard() {
@@ -169,6 +180,19 @@ final class ExoManager: ObservableObject {
         pasteboard.clearContents()
         let text = recentLogs.joined(separator: "\n")
         pasteboard.setString(text, forType: .string)
+    }
+
+    func rebuildDashboard() async -> String {
+        let result = await runShell("cd \"\(exoDirectory)/dashboard\" && npm install && npm run build", environment: [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 300, onOutput: nil)
+        if result.terminationStatus == 0 {
+            return "Dashboard rebuilt successfully. Stop and restart the cluster."
+        } else {
+            let output = (result.stdout + "\n" + result.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
+            return "Dashboard build failed (code \(result.terminationStatus)): \(output.isEmpty ? "No output" : output)"
+        }
     }
 
     func testExoInstallation() async -> String {

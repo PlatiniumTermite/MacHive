@@ -9,6 +9,8 @@ struct DiagnosticsView: View {
     @State private var testingExo = false
     @State private var testResult: String? = nil
     @State private var isFirewallOn = false
+    @State private var rebuildingDashboard = false
+    @State private var rebuildResult: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -133,6 +135,13 @@ struct DiagnosticsView: View {
             .frame(maxWidth: .infinity)
             .disabled(testingExo)
 
+            Button("Rebuild Dashboard") {
+                rebuildDashboard()
+            }
+            .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
+            .disabled(rebuildingDashboard)
+
             if let testResult = testResult, !testingExo {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: testResult.contains("failed") || testResult.contains("Could not") ? "exclamationmark.triangle" : "checkmark.circle")
@@ -149,15 +158,34 @@ struct DiagnosticsView: View {
                 .cornerRadius(8)
             }
 
+            if let rebuildResult = rebuildResult, !rebuildingDashboard {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: rebuildResult.contains("failed") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .foregroundStyle(rebuildResult.contains("failed") ? .red : .green)
+                    Text("Dashboard: \(rebuildResult)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
+            }
+
             Button("Copy Results") {
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
                 let text = results.map { "\($0.passed ? "✅" : "❌") \($0.title)\($0.detail.map { ": \($0)" } ?? "")" }.joined(separator: "\n")
+                var full = text
                 if let testResult = testResult {
-                    pasteboard.setString(text + "\n\nTest exo: \(testResult)", forType: .string)
-                } else {
-                    pasteboard.setString(text, forType: .string)
+                    full += "\n\nTest exo: \(testResult)"
                 }
+                if let rebuildResult = rebuildResult {
+                    full += "\n\nDashboard: \(rebuildResult)"
+                }
+                pasteboard.setString(full, forType: .string)
             }
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
@@ -239,6 +267,18 @@ struct DiagnosticsView: View {
             await MainActor.run {
                 testResult = result
                 testingExo = false
+            }
+        }
+    }
+
+    private func rebuildDashboard() {
+        rebuildingDashboard = true
+        rebuildResult = "Rebuilding dashboard..."
+        Task {
+            let result = await exo.rebuildDashboard()
+            await MainActor.run {
+                rebuildResult = result
+                rebuildingDashboard = false
             }
         }
     }
