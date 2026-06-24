@@ -63,11 +63,21 @@ struct MenuBarView: View {
 
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(state.status == .running || state.status == .ready ? Color.green : Color.gray)
+                        .fill(state.clusterReady ? Color.green : (state.status == .running || state.status == .ready ? Color.orange : Color.gray))
                         .frame(width: 8, height: 8)
                     Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") · \(state.combinedRAMGB) GB")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                    if state.clusterReady {
+                        Text("Ready")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.green)
+                    } else if state.status == .running || state.status == .ready {
+                        Text("Starting...")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
 
@@ -93,10 +103,15 @@ struct MenuBarView: View {
             HStack(alignment: .top, spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.caption)
-                Text("Click Start AI Cluster on every Mac to form the cluster.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("How to combine two Macs:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Text("1. Connect both Macs to the same WiFi\n2. Set the same namespace in Settings → Advanced\n3. Click Start AI Cluster on both Macs\n4. Wait for green status dots, then click Open Chat")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Spacer()
             }
             .padding(.horizontal)
@@ -192,13 +207,25 @@ struct MenuBarView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.circle")
                         .font(.caption)
-                    Text("Needs \(state.selectedModel.requiredRAMGB)GB combined RAM · you have \(state.combinedRAMGB)GB")
+                    Text("Needs \(state.selectedModel.requiredRAMGB)GB combined RAM · you have \(state.combinedRAMGB)GB. Start the cluster on more Macs to combine RAM.")
                         .font(.caption)
                 }
                 .foregroundColor(.red)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
                 .help("This model requires more combined RAM than is currently available from online Macs.")
+            }
+
+            if state.selectedModel.requiredRAMGB >= 40 && state.selectedModelFits {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.circle")
+                        .font(.caption)
+                    Text("Hard model: requires \(state.selectedModel.requiredRAMGB)GB across your cluster.")
+                        .font(.caption)
+                }
+                .foregroundColor(.orange)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if exo.isRunning {

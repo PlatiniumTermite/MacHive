@@ -22,8 +22,13 @@ enum ClusterStatus: Equatable {
 enum ExoModel: String, CaseIterable, Identifiable {
     case llama3_8b = "Llama 3 8B"
     case llama3_70b = "Llama 3 70B"
+    case llama3_1_405b = "Llama 3.1 405B"
     case qwen2_5_32b = "Qwen 2.5 32B"
+    case qwen2_5_72b = "Qwen 2.5 72B"
     case mistral_7b = "Mistral 7B"
+    case mixtral_8x22b = "Mixtral 8x22B"
+    case deepseek_r1_32b = "DeepSeek R1 32B"
+    case deepseek_r1_70b = "DeepSeek R1 70B"
 
     var id: String { rawValue }
 
@@ -33,8 +38,13 @@ enum ExoModel: String, CaseIterable, Identifiable {
         switch self {
         case .llama3_8b: return 8
         case .llama3_70b: return 40
+        case .llama3_1_405b: return 230
         case .qwen2_5_32b: return 20
+        case .qwen2_5_72b: return 45
         case .mistral_7b: return 8
+        case .mixtral_8x22b: return 80
+        case .deepseek_r1_32b: return 22
+        case .deepseek_r1_70b: return 48
         }
     }
 }
@@ -109,6 +119,11 @@ final class ClusterState: ObservableObject {
 
     var selectedModelFits: Bool {
         combinedRAMGB >= selectedModel.requiredRAMGB
+    }
+
+    var clusterReady: Bool {
+        let multiplePeers = onlinePeerCount >= 2
+        return (status == .running || status == .ready) && multiplePeers && selectedModelFits
     }
 
     func canRunModel(_ model: ExoModel) -> Bool {
