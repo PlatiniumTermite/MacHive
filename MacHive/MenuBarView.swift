@@ -12,6 +12,8 @@ struct MenuBarView: View {
     @State private var fullErrorMessage = ""
     @State private var manualPeerIP: String = ""
     @State private var isFixing = false
+    @State private var showingCombinedPowerResult = false
+    @State private var combinedPowerResult = ""
 
     init(discovery: PeerDiscovery, exo: ExoManager) {
         self.discovery = discovery
@@ -68,6 +70,11 @@ struct MenuBarView: View {
         }
         .sheet(isPresented: $showingFullError) {
             FullErrorSheet(message: fullErrorMessage, isPresented: $showingFullError)
+        }
+        .alert("Combined Power Test", isPresented: $showingCombinedPowerResult) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(combinedPowerResult)
         }
     }
 
@@ -136,8 +143,79 @@ struct MenuBarView: View {
         .padding(.vertical, 12)
     }
 
+    private var combinedPowerCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "cpu")
+                    .foregroundColor(state.performanceMode ? .green : .secondary)
+                Text("Combined power")
+                    .font(.callout)
+                    .fontWeight(.semibold)
+                Spacer()
+                if state.performanceMode {
+                    Label("Max", systemImage: "bolt.fill")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                } else {
+                    Label("Normal", systemImage: "bolt.slash")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(state.onlinePeerCount)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("Mac\(state.onlinePeerCount == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(state.combinedRAMGB) GB")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("RAM")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(state.combinedCPUThreads)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("cores")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            if state.clusterReady && !state.performanceMode {
+                HStack(spacing: 6) {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(.yellow)
+                    Text("Turn on Performance Mode on both Macs for maximum power.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(Color.secondary.opacity(0.05))
+        .cornerRadius(8)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+    }
+
     private var peerList: some View {
         VStack(alignment: .leading, spacing: 0) {
+            combinedPowerCard
             if let error = discovery.error {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle")
@@ -324,6 +402,13 @@ struct MenuBarView: View {
                     exo.openChat()
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+
+                Button("Test Combined Power") {
+                    testCombinedPower()
+                }
+                .buttonStyle(.bordered)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)
 
@@ -663,6 +748,32 @@ struct MenuBarView: View {
                     discovery.forceDiscovery()
                 }
                 isFixing = false
+            }
+        }
+    }
+
+    private func testCombinedPower() {
+        Task {
+            let url = URL(string: "http://localhost:52415")!
+            let start = Date()
+            let request = URLRequest(url: url, timeoutInterval: 5.0)
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                let elapsed = Date().timeIntervalSince(start)
+                let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+                await MainActor.run {
+                    if status == 200 {
+                        combinedPowerResult = "AI engine is responding in \(String(format: "%.2f", elapsed))s.\n\nCombined power:\n• \(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s")\n• \(state.combinedRAMGB) GB RAM\n• \(state.combinedCPUThreads) CPU cores\n\nIf Performance Mode is on, both Macs are running at full power."
+                    } else {
+                        combinedPowerResult = "AI engine returned status \(status). The cluster may still be starting. Wait a moment and try again."
+                    }
+                    showingCombinedPowerResult = true
+                }
+            } catch {
+                await MainActor.run {
+                    combinedPowerResult = "Could not reach the AI engine. Make sure the cluster is running and wait a few seconds."
+                    showingCombinedPowerResult = true
+                }
             }
         }
     }
