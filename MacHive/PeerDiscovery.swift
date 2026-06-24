@@ -4,10 +4,11 @@ import Network
 final class PeerDiscovery: ObservableObject {
     static let serviceType = "_machive._tcp"
     static let domain = "local."
-    static let cleanupInterval: TimeInterval = 2.0
+    static let cleanupInterval: TimeInterval = 1.0
     static let timeout: TimeInterval = 5.0
     static let udpPort: UInt16 = 52416
-    static let broadcastInterval: TimeInterval = 2.0
+    static let multicastGroup = "224.0.0.251"
+    static let broadcastInterval: TimeInterval = 1.0
 
     private var advertiser: NWListener?
     private var browser: NWBrowser?
@@ -15,6 +16,7 @@ final class PeerDiscovery: ObservableObject {
     private var udpBroadcastTimer: Timer?
     private var udpListener: NWListener?
     private var udpConnection: NWConnection?
+    private var multicastConnection: NWConnection?
     private var discovered: [String: Peer] = [:]
     private let updateQueue = DispatchQueue(label: "com.machive.peerdiscovery", qos: .utility)
 
@@ -41,6 +43,8 @@ final class PeerDiscovery: ObservableObject {
         udpListener = nil
         udpConnection?.cancel()
         udpConnection = nil
+        multicastConnection?.cancel()
+        multicastConnection = nil
         udpBroadcastTimer?.invalidate()
         udpBroadcastTimer = nil
         cleanupTimer?.invalidate()
@@ -57,6 +61,15 @@ final class PeerDiscovery: ObservableObject {
     func refresh() {
         stop()
         start()
+    }
+
+    func forceDiscovery() {
+        // Send 5 rapid broadcasts over 5 seconds to maximize discovery chance
+        for i in 0..<5 {
+            DispatchQueue.global().asyncAfter(deadline: .now() + Double(i)) { [weak self] in
+                self?.sendUDPBroadcast()
+            }
+        }
     }
 
     private func startAdvertising() {
@@ -178,6 +191,14 @@ final class PeerDiscovery: ObservableObject {
         udpConnection = NWConnection(to: endpoint, using: parameters)
         udpConnection?.start(queue: .global())
 
+        guard let multicastIP = IPv4Address(PeerDiscovery.multicastGroup) else {
+            NSLog("MacHive: invalid multicast IP")
+            return
+        }
+        let multicastEndpoint = NWEndpoint.hostPort(host: .ipv4(multicastIP), port: port)
+        multicastConnection = NWConnection(to: multicastEndpoint, using: parameters)
+        multicastConnection?.start(queue: .global())
+
         udpBroadcastTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.broadcastInterval, repeats: true) { [weak self] _ in
             self?.sendUDPBroadcast()
         }
@@ -212,6 +233,11 @@ final class PeerDiscovery: ObservableObject {
         udpConnection?.send(content: data, completion: .contentProcessed { error in
             if let error = error {
                 NSLog("MacHive: UDP broadcast failed: \(error.localizedDescription)")
+            }
+        })
+        multicastConnection?.send(content: data, completion: .contentProcessed { error in
+            if let error = error {
+                NSLog("MacHive: UDP multicast failed: \(error.localizedDescription)")
             }
         })
     }

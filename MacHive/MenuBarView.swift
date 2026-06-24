@@ -400,6 +400,14 @@ struct MenuBarView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
+                Button("Boost Discovery") {
+                    discovery.forceDiscovery()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Send 5 rapid network beacons to find other Macs immediately")
+
                 Button("Diagnostics") {
                     showingDiagnostics = true
                 }
