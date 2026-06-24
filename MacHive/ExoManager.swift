@@ -188,7 +188,11 @@ final class ExoManager: ObservableObject {
             startPolling()
 
             // Verify the server actually responds before claiming it is running
-            let serverReady = await waitForServer(timeout: 30)
+            // exo can take a while on first launch while it downloads models or builds the dashboard
+            await MainActor.run { [weak self] in
+                self?.statusText = "Waiting for exo server..."
+            }
+            let serverReady = await waitForServer(timeout: 60)
             if serverReady {
                 isRunning = true
                 isPreparing = false
@@ -295,7 +299,7 @@ final class ExoManager: ObservableObject {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
                     self?.statusText = "Cluster test passed: server is responding"
                     self?.lastError = nil
-                    NSWorkspace.shared.open(self?.dashboardURL ?? url)
+                    NSWorkspace.shared.open(self?.dashboardURL ?? URL(string: "http://localhost:52415")!)
                 } else {
                     self?.lastError = "Cluster test failed: server returned status \((response as? HTTPURLResponse)?.statusCode ?? 0)"
                 }
@@ -306,17 +310,29 @@ final class ExoManager: ObservableObject {
 
     func openChat() {
         guard let url = URL(string: "http://localhost:52415") else { return }
-        let request = URLRequest(url: url, timeoutInterval: 3.0)
-        let task = URLSession.shared.dataTask(with: request) { [weak self] _, response, _ in
-            Task { @MainActor [weak self] in
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
-                    NSWorkspace.shared.open(self?.dashboardURL ?? url)
-                } else {
-                    self?.lastError = "Chat server is not responding at localhost:52415. exo may still be starting or the dashboard build failed. Click Copy Logs and wait 30 seconds, then try again."
+        // Retry a few times because exo can take a moment to serve the dashboard
+        Task {
+            for attempt in 1...5 {
+                let request = URLRequest(url: url, timeoutInterval: 3.0)
+                let result = await withCheckedContinuation { continuation in
+                    URLSession.shared.dataTask(with: request) { _, response, _ in
+                        continuation.resume(returning: (response as? HTTPURLResponse)?.statusCode == 200)
+                    }.resume()
+                }
+                if result {
+                    _ = await MainActor.run {
+                        NSWorkspace.shared.open(self.dashboardURL)
+                    }
+                    return
+                }
+                if attempt < 5 {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
                 }
             }
+            await MainActor.run { [weak self] in
+                self?.lastError = "Chat server is not responding at localhost:52415. exo may still be starting or the dashboard build failed. Click Copy Logs and wait 60 seconds, then try again."
+            }
         }
-        task.resume()
     }
 
     func copyLogsToPasteboard() {
@@ -378,6 +394,12 @@ final class ExoManager: ObservableObject {
                 self.exoPeerStatus = "Waiting for peers..."
             } else if line.contains("Partition") {
                 self.exoPeerStatus = "Model distributed across peers"
+            }
+            if line.contains("Dashboard & API Ready") || line.contains("Running on http://0.0.0.0:52415") {
+                self.statusText = "Dashboard ready"
+            }
+            if line.contains("Downloading") || line.contains("download") && line.contains("model") {
+                self.statusText = "Downloading model weights..."
             }
             // Count connected peers by counting "Connected to peer" occurrences
             let connectedLines = self.recentLogs.filter { $0.contains("Connected to peer") || $0.contains("connected to peer") }
