@@ -14,6 +14,7 @@ final class PeerDiscovery: ObservableObject {
     private var browser: NWBrowser?
     private var cleanupTimer: Timer?
     private var udpBroadcastTimer: Timer?
+    private var autoScanTimer: Timer?
     private var udpListener: NWListener?
     private var udpConnection: NWConnection?
     private var multicastConnection: NWConnection?
@@ -32,6 +33,13 @@ final class PeerDiscovery: ObservableObject {
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.cleanupInterval, repeats: true) { [weak self] _ in
             self?.purgeStalePeers()
         }
+        autoScanTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            let remoteCount = self.peers.filter { $0.discoveryMethod != "local" }.count
+            if remoteCount == 0 {
+                self.scanLocalSubnet()
+            }
+        }
     }
 
     func stop() {
@@ -47,6 +55,8 @@ final class PeerDiscovery: ObservableObject {
         multicastConnection = nil
         udpBroadcastTimer?.invalidate()
         udpBroadcastTimer = nil
+        autoScanTimer?.invalidate()
+        autoScanTimer = nil
         cleanupTimer?.invalidate()
         cleanupTimer = nil
         isBrowsing = false
@@ -90,6 +100,33 @@ final class PeerDiscovery: ObservableObject {
             self?.discovered[name] = peer
             DispatchQueue.main.async { [weak self] in
                 self?.updatePeers()
+            }
+        }
+    }
+
+    func scanLocalSubnet() {
+        guard let localIP = NetworkHelper.getLocalIPAddress(),
+              let lastDot = localIP.lastIndex(of: ".") else { return }
+        let prefix = String(localIP[..<lastDot])
+        let scanPort = NWEndpoint.Port(rawValue: PeerDiscovery.udpPort) ?? 52416
+        let parameters = NWParameters.udp
+        parameters.includePeerToPeer = true
+
+        for i in 1...254 {
+            let ip = "\(prefix).\(i)"
+            guard let address = IPv4Address(ip) else { continue }
+            let endpoint = NWEndpoint.hostPort(host: .ipv4(address), port: scanPort)
+            let connection = NWConnection(to: endpoint, using: parameters)
+            connection.start(queue: .global())
+            let probe: [String: String] = [
+                "action": "ping",
+                "name": Host.current().localizedName ?? "MacHive",
+                "namespace": UserDefaults.standard.string(forKey: "exoNamespace") ?? "machive"
+            ]
+            if let data = try? JSONSerialization.data(withJSONObject: probe) {
+                connection.send(content: data, completion: .contentProcessed { _ in
+                    connection.cancel()
+                })
             }
         }
     }
@@ -230,6 +267,10 @@ final class PeerDiscovery: ObservableObject {
     private func udpListen(connection: NWConnection) {
         connection.receiveMessage { [weak self] content, _, _, error in
             if let data = content, let payload = try? JSONSerialization.jsonObject(with: data) as? [String: String] {
+                if payload["action"] == "ping" {
+                    // Respond with our info so the scanner can discover us
+                    self?.sendPong(to: connection)
+                }
                 self?.updateQueue.async { [weak self] in
                     self?.handleUDP(payload: payload)
                 }
@@ -238,6 +279,11 @@ final class PeerDiscovery: ObservableObject {
                 self?.udpListen(connection: connection)
             }
         }
+    }
+
+    private func sendPong(to connection: NWConnection) {
+        // When a directed ping arrives, broadcast our presence so the scanner can discover us
+        sendUDPBroadcast()
     }
 
     private func sendUDPBroadcast() {

@@ -426,6 +426,14 @@ struct MenuBarView: View {
                 .controlSize(.small)
                 .help("Send 5 rapid network beacons to find other Macs immediately")
 
+                Button("Scan Network") {
+                    discovery.scanLocalSubnet()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Ping every IP on your WiFi subnet to find hidden Macs")
+
                 Button("Diagnostics") {
                     showingDiagnostics = true
                 }
