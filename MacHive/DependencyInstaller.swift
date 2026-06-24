@@ -72,6 +72,7 @@ final class DependencyInstaller: ObservableObject {
     }
 
     var manualInstallCommand: String {
+        try? copyManualScriptToApplicationSupport()
         let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"
         return "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
     }

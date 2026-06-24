@@ -36,6 +36,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
+        if !isInApplicationsFolder() {
+            showMoveToApplicationsAlert()
+            return
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "hexagon.fill", accessibilityDescription: "MacHive")
@@ -120,6 +125,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    private func isInApplicationsFolder() -> Bool {
+        guard let bundlePath = Bundle.main.bundlePath as String? else { return false }
+        return bundlePath.hasPrefix("/Applications/")
+    }
+
+    private func showMoveToApplicationsAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Move MacHive to Applications"
+        alert.informativeText = "MacHive must run from /Applications to work correctly. Click Move to move it automatically, or move it manually and relaunch."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Move to Applications")
+        alert.addButton(withTitle: "Move Manually Later")
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            moveToApplicationsAndRelaunch()
+        } else {
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func moveToApplicationsAndRelaunch() {
+        guard let sourceURL = Bundle.main.bundleURL as URL? else {
+            showMoveFailedAlert(message: "Could not locate MacHive.app.")
+            return
+        }
+        let destinationURL = URL(fileURLWithPath: "/Applications/MacHive.app")
+        let fm = FileManager.default
+
+        do {
+            if fm.fileExists(atPath: destinationURL.path) {
+                try? fm.trashItem(at: destinationURL, resultingItemURL: nil)
+            }
+            try fm.copyItem(at: sourceURL, to: destinationURL)
+
+            let alert = NSAlert()
+            alert.messageText = "MacHive moved to Applications"
+            alert.informativeText = "MacHive will now relaunch from /Applications."
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "Relaunch")
+            alert.runModal()
+
+            NSWorkspace.shared.openApplication(at: destinationURL, configuration: NSWorkspace.OpenConfiguration()) { _, _ in
+                NSApp.terminate(nil)
+            }
+        } catch {
+            showMoveFailedAlert(message: error.localizedDescription)
+        }
+    }
+
+    private func showMoveFailedAlert(message: String) {
+        let alert = NSAlert()
+        alert.messageText = "Could not move automatically"
+        alert.informativeText = "Please drag MacHive.app to /Applications manually and relaunch. Error: \(message)"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Quit")
+        alert.runModal()
+        NSApp.terminate(nil)
     }
 }
 
