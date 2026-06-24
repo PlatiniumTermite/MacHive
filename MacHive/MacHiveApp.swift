@@ -3,6 +3,7 @@ import AppKit
 import ServiceManagement
 import Combine
 import QuartzCore
+import UserNotifications
 
 @main
 struct MacHiveApp: App {
@@ -84,6 +85,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: nil
         )
 
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkForUpdatesManual),
+            name: NSNotification.Name("MacHiveCheckForUpdates"),
+            object: nil
+        )
+
         sharedExo.$isRunning
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.updateIcon() }
@@ -94,13 +102,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             .sink { [weak self] _ in self?.updateIcon() }
             .store(in: &cancellables)
 
+        var previousPeers: Set<String> = []
         sharedDiscovery.$peers
             .receive(on: DispatchQueue.main)
             .sink { [weak self] peers in
                 UserDefaults.standard.set(peers.count, forKey: "MacHivePeerCount")
                 self?.updateIcon()
+                let currentIDs = Set(peers.map { $0.id })
+                let joined = currentIDs.subtracting(previousPeers)
+                let left = previousPeers.subtracting(currentIDs)
+                for id in joined {
+                    if let peer = peers.first(where: { $0.id == id }) {
+                        self?.postNotification(title: "Mac joined", body: "\(peer.name) is now in the cluster")
+                    }
+                }
+                for _ in left {
+                    self?.postNotification(title: "Mac left", body: "A Mac disconnected from the cluster")
+                }
+                previousPeers = currentIDs
             }
             .store(in: &cancellables)
+
+        if #available(macOS 11.0, *) {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        }
 
         Task { @MainActor in
             let installer = DependencyInstaller()
@@ -108,7 +133,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 setupComplete = true
                 rebuildPopover()
                 await sharedExo.checkExistingExo()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    self.checkForUpdates()
+                }
             }
+        }
+    }
+
+    private func checkForUpdates() {
+        let url = URL(string: "https://api.github.com/repos/PlatiniumTermite/MacHive/releases/latest")!
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let tag = json["tag_name"] as? String {
+                    let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+                    let latest = tag.replacingOccurrences(of: "v", with: "")
+                    if latest.compare(currentVersion, options: .numeric) == .orderedDescending {
+                        await MainActor.run {
+                            self.showUpdateAlert(version: latest)
+                        }
+                    }
+                }
+            } catch {
+                NSLog("MacHive: update check failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func showUpdateAlert(version: String) {
+        let alert = NSAlert()
+        alert.messageText = "MacHive \(version) is available"
+        alert.informativeText = "A newer version of MacHive has been released. Download it to get the latest improvements."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Download")
+        alert.addButton(withTitle: "Later")
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(URL(string: "https://github.com/PlatiniumTermite/MacHive/releases/latest")!)
         }
     }
 
@@ -165,6 +227,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @objc private func requestLocalNetwork() {
         sharedDiscovery.start()
         sharedDiscovery.forceDiscovery()
+    }
+
+    @objc private func checkForUpdatesManual() {
+        checkForUpdates()
+    }
+
+    private func postNotification(title: String, body: String) {
+        if #available(macOS 11.0, *) {
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        } else {
+            let notification = NSUserNotification()
+            notification.title = title
+            notification.informativeText = body
+            notification.soundName = NSUserNotificationDefaultSoundName
+            NSUserNotificationCenter.default.deliver(notification)
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

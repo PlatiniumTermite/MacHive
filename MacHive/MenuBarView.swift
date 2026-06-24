@@ -634,6 +634,13 @@ struct MenuBarView: View {
             .foregroundStyle(.blue)
             .help("Opens ~/MacHive/Projects. Put this folder in iCloud/Dropbox to share code between Macs.")
 
+            Button("Check for Updates") {
+                NotificationCenter.default.post(name: NSNotification.Name("MacHiveCheckForUpdates"), object: nil)
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+
             Button("Advanced Settings") {
                 state.showAdvancedSettings.toggle()
             }
