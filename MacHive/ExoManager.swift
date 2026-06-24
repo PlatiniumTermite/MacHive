@@ -51,7 +51,7 @@ final class ExoManager: ObservableObject {
         startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 180.0, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                if self.statusText != "Cluster started" && self.statusText != "Cluster stopped" {
+                if self.statusText != "Cluster started" && self.statusText != "Cluster stopped" && self.statusText != "Still starting..." && self.statusText != "Dashboard ready" {
                     self.lastError = "Cluster is taking too long to start. Try clicking Stop, then Clear uv Locks in Diagnostics, then Start again."
                     self.statusText = "Cluster start timed out"
                 }
@@ -198,13 +198,12 @@ final class ExoManager: ObservableObject {
                 isPreparing = false
                 statusText = "Cluster started"
             } else {
-                lastError = "exo process started but server is not responding on localhost:52415"
-                isRunning = false
-                isPreparing = false
-                process?.terminate()
-                process?.kill()
-                process = nil
-                statusText = "Server failed to respond"
+                // exo may still be downloading model weights or building the dashboard on first launch.
+                // Don't kill it automatically; let the user decide or wait for the health check.
+                lastError = "exo is still starting. If this is the first launch, it may be downloading model weights. Click Stop if you want to cancel, or wait and check Test Cluster."
+                statusText = "Still starting..."
+                // Keep isPreparing true so the UI shows it's still working
+                isPreparing = true
             }
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
