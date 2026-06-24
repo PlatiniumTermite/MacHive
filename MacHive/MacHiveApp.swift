@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 setupComplete = true
                 rebuildPopover()
                 sharedDiscovery.start()
+                await sharedExo.checkExistingExo()
             }
         }
     }

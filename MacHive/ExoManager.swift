@@ -207,6 +207,24 @@ final class ExoManager: ObservableObject {
         }
     }
 
+    func checkExistingExo() async {
+        let url = URL(string: "http://localhost:52415")!
+        let request = URLRequest(url: url, timeoutInterval: 3.0)
+        let result = await withCheckedContinuation { continuation in
+            URLSession.shared.dataTask(with: request) { _, response, _ in
+                continuation.resume(returning: (response as? HTTPURLResponse)?.statusCode == 200)
+            }.resume()
+        }
+        if result {
+            await MainActor.run { [weak self] in
+                self?.isRunning = true
+                self?.isPreparing = false
+                self?.statusText = "Cluster already running"
+                self?.startPolling()
+            }
+        }
+    }
+
     private func waitForServer(timeout: TimeInterval) async -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         let url = URL(string: "http://localhost:52415")!

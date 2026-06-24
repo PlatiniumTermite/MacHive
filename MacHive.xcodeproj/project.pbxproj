@@ -22,12 +22,14 @@
 		A26EA8274E937500A1256124 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F50E7B1A355590E8A5F9D7E /* SwiftUI.framework */; };
 		B6E7CE11DCD0944EA5F1A8DF /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 369A2EBE00CC23F191FA5B17 /* ServiceManagement.framework */; };
 		C7DB1F98570CD86F3B4EB8D7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B89796A6FFCDE94C8C234A5 /* AppKit.framework */; };
+		D16E4F24AC5C4143F6ACE80B /* WelcomeSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36A8D942D5AEF26324B20DB6 /* WelcomeSetupSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2C472824F7D35856C6C583D2 /* DependencyInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DependencyInstaller.swift; sourceTree = "<group>"; };
 		3214F7D831B80C327D870E3B /* PeerDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerDiscovery.swift; sourceTree = "<group>"; };
 		369A2EBE00CC23F191FA5B17 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		36A8D942D5AEF26324B20DB6 /* WelcomeSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeSetupSheet.swift; sourceTree = "<group>"; };
 		488E5ACD40B9ACC4F939816D /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		659CA4421C8B5843F9AE4F56 /* NetworkHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkHelper.swift; sourceTree = "<group>"; };
 		6C923F9DD157D64031ABE546 /* MacHive.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MacHive.entitlements; sourceTree = "<group>"; };
@@ -84,6 +86,7 @@
 				659CA4421C8B5843F9AE4F56 /* NetworkHelper.swift */,
 				3214F7D831B80C327D870E3B /* PeerDiscovery.swift */,
 				E265E09B4CD4D7F6F41664BF /* SetupView.swift */,
+				36A8D942D5AEF26324B20DB6 /* WelcomeSetupSheet.swift */,
 			);
 			path = MacHive;
 			sourceTree = "<group>";
@@ -186,6 +189,7 @@
 				29FC0F0D90521EDB1CBD9B44 /* NetworkHelper.swift in Sources */,
 				8EE682A9EF708121A961D735 /* PeerDiscovery.swift in Sources */,
 				7FE062531A56ADA4D7218A5B /* SetupView.swift in Sources */,
+				D16E4F24AC5C4143F6ACE80B /* WelcomeSetupSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

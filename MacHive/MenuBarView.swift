@@ -7,6 +7,7 @@ struct MenuBarView: View {
     @ObservedObject var exo: ExoManager
     @State private var showingStopConfirmation = false
     @State private var showingDiagnostics = false
+    @State private var showingWelcome = false
     @State private var manualPeerIP: String = ""
 
     init(discovery: PeerDiscovery, exo: ExoManager) {
@@ -29,6 +30,11 @@ struct MenuBarView: View {
         .frame(width: 320)
         .onAppear {
             updatePeers()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                if !isInApplications || isFirewallOn {
+                    showingWelcome = true
+                }
+            }
             if state.autoStartCluster && !exo.isRunning && !exo.isPreparing && state.selectedModelFits {
                 state.status = .starting
                 exo.start(namespace: state.namespace)
@@ -53,6 +59,26 @@ struct MenuBarView: View {
         .sheet(isPresented: $showingDiagnostics) {
             DiagnosticsView(exo: exo, namespace: state.namespace)
         }
+        .sheet(isPresented: $showingWelcome) {
+            WelcomeSetupSheet(isPresented: $showingWelcome)
+        }
+    }
+
+    private var isInApplications: Bool {
+        Bundle.main.bundlePath.hasPrefix("/Applications/")
+    }
+
+    private var isFirewallOn: Bool {
+        let result = Process()
+        result.launchPath = "/usr/bin/defaults"
+        result.arguments = ["read", "/Library/Preferences/com.apple.alf", "globalstate"]
+        let pipe = Pipe()
+        result.standardOutput = pipe
+        try? result.run()
+        result.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let text = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "1"
+        return text != "0"
     }
 
     private var header: some View {
