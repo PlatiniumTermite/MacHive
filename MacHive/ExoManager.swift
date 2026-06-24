@@ -23,6 +23,7 @@ final class ExoManager: ObservableObject {
     private let maxRestartAttempts: Int = 3
     private var consecutiveFailures: Int = 0
     private let maxConsecutiveFailures: Int = 3
+    private var stoppingManually: Bool = false
     private let maxLogLines: Int = 100
     private let exoDirectory = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
 
@@ -190,7 +191,10 @@ final class ExoManager: ObservableObject {
                 _ = stderrPipe.fileHandleForReading.readDataToEndOfFile()
                 self.process = nil
                 self.isRunning = false
-                if task.terminationStatus != 0, self.lastError == nil {
+                if self.stoppingManually {
+                    self.stoppingManually = false
+                    self.lastError = nil
+                } else if task.terminationStatus != 0, self.lastError == nil {
                     let recent = self.recentLogs.suffix(5).joined(separator: "\n")
                     self.lastError = "exo exited unexpectedly (code \(task.terminationStatus)).\n\nRecent logs:\n\(recent)"
                 }
@@ -283,6 +287,7 @@ final class ExoManager: ObservableObject {
     }
 
     func stop() {
+        stoppingManually = true
         restartAttempts = maxRestartAttempts
         consecutiveFailures = 0
         statusTimer?.invalidate()
