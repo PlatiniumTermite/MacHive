@@ -64,7 +64,7 @@ struct MenuBarView: View {
 
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(state.clusterReady ? Color.green : (state.status == .running || state.status == .ready ? Color.orange : Color.gray))
+                        .fill(state.clusterReady ? Color.green : (state.status == .running || state.status == .ready ? Color.orange : (exo.isPreparing ? Color.yellow : Color.gray)))
                         .frame(width: 8, height: 8)
                     Text("\(state.onlinePeerCount) Mac\(state.onlinePeerCount == 1 ? "" : "s") · \(state.combinedRAMGB) GB")
                         .font(.subheadline)
@@ -74,6 +74,10 @@ struct MenuBarView: View {
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundStyle(.green)
+                    } else if exo.isPreparing {
+                        Text("Preparing")
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
                     } else if state.status == .running || state.status == .ready {
                         Text("Running")
                             .font(.caption)
@@ -275,6 +279,12 @@ struct MenuBarView: View {
                 } message: {
                     Text("This will stop the exo process on this Mac.")
                 }
+            } else if exo.isPreparing {
+                Button("Preparing cluster...") {}
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+                    .disabled(true)
             } else {
                 Button("Start AI Cluster") {
                     state.status = .starting

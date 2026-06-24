@@ -9,6 +9,7 @@ final class ExoManager: ObservableObject {
             NotificationCenter.default.post(name: NSNotification.Name("MacHiveStatusChanged"), object: nil)
         }
     }
+    @Published var isPreparing: Bool = false
     @Published var lastError: String? = nil
     @Published var exoPeerCount: Int = 0
     @Published var exoPeerStatus: String = "Not started"
@@ -28,7 +29,7 @@ final class ExoManager: ObservableObject {
     }
 
     func start(namespace: String = "machive") {
-        guard !isRunning else { return }
+        guard !isRunning && !isPreparing else { return }
         lastError = nil
 
         // Pre-flight network checks
@@ -39,13 +40,12 @@ final class ExoManager: ObservableObject {
 
         guard ExoManager.exoIsInstalled else {
             lastError = "exo is not installed. Run setup first."
-            isRunning = false
             return
         }
 
         let safeNamespace = namespace.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "machive" : namespace
 
-        isRunning = true
+        isPreparing = true
         statusText = "Preparing cluster..."
         startWatchdogTimer?.invalidate()
         startWatchdogTimer = Timer.scheduledTimer(withTimeInterval: 60.0, repeats: false) { [weak self] _ in
@@ -76,7 +76,7 @@ final class ExoManager: ObservableObject {
                 await MainActor.run { [weak self] in
                     let output = (syncResult.stdout + "\n" + syncResult.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
                     self?.lastError = "uv sync failed: \(output.isEmpty ? "Unknown error" : output)"
-                    self?.isRunning = false
+                    self?.isPreparing = false
                     self?.statusText = "Cluster failed to prepare"
                     self?.startWatchdogTimer?.invalidate()
                     self?.startWatchdogTimer = nil
@@ -185,12 +185,15 @@ final class ExoManager: ObservableObject {
             process = task
             restartAttempts = 0
             startPolling()
+            isRunning = true
+            isPreparing = false
             statusText = "Cluster started"
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
         } catch {
             lastError = "Failed to start exo: \(error.localizedDescription)"
             isRunning = false
+            isPreparing = false
             process = nil
             statusText = "Cluster failed to start"
             startWatchdogTimer?.invalidate()
@@ -206,6 +209,7 @@ final class ExoManager: ObservableObject {
         startWatchdogTimer = nil
         statusText = "Stopping cluster..."
         isRunning = false
+        isPreparing = false
 
         // Force kill the main process and all child processes
         if let process = process {
