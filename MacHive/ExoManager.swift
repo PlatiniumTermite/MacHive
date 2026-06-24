@@ -33,6 +33,8 @@ final class ExoManager: ObservableObject {
     func start(namespace: String = "machive") {
         guard !isRunning && !isPreparing else { return }
         lastError = nil
+        consecutiveFailures = 0
+        restartAttempts = 0
 
         // Pre-flight network checks
         let networkIssues = NetworkHelper.checkNetworkRequirements()
@@ -75,7 +77,7 @@ final class ExoManager: ObservableObject {
     }
 
     func clearUVLocks() async -> String {
-        let result = await runShell("pkill -f 'uv run' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+        let result = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "HOME": NSHomeDirectory()
         ], timeout: 10, onOutput: nil)
@@ -108,7 +110,7 @@ final class ExoManager: ObservableObject {
     }
 
     private func clearUVLocksInternal() async {
-        let _ = await runShell("pkill -f 'uv run' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+        let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
             "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
             "HOME": NSHomeDirectory()
         ], timeout: 10, onOutput: nil)
@@ -257,6 +259,7 @@ final class ExoManager: ObservableObject {
 
     func stop() {
         restartAttempts = maxRestartAttempts
+        consecutiveFailures = 0
         statusTimer?.invalidate()
         statusTimer = nil
         startWatchdogTimer?.invalidate()
@@ -278,7 +281,7 @@ final class ExoManager: ObservableObject {
         Task {
             await removeExoPidfile()
             await killPortListeners()
-            let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
+            let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'MacHive/exo/.venv/bin/exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
                 "HOME": NSHomeDirectory()
             ], timeout: 10, onOutput: nil)
