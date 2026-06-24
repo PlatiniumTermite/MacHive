@@ -163,9 +163,22 @@ final class ExoManager: ObservableObject {
             process = task
             restartAttempts = 0
             startPolling()
-            isRunning = true
-            isPreparing = false
-            statusText = "Cluster started"
+
+            // Verify the server actually responds before claiming it is running
+            let serverReady = await waitForServer(timeout: 30)
+            if serverReady {
+                isRunning = true
+                isPreparing = false
+                statusText = "Cluster started"
+            } else {
+                lastError = "exo process started but server is not responding on localhost:52415"
+                isRunning = false
+                isPreparing = false
+                process?.terminate()
+                process?.kill()
+                process = nil
+                statusText = "Server failed to respond"
+            }
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
         } catch {
@@ -177,6 +190,23 @@ final class ExoManager: ObservableObject {
             startWatchdogTimer?.invalidate()
             startWatchdogTimer = nil
         }
+    }
+
+    private func waitForServer(timeout: TimeInterval) async -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        let url = URL(string: "http://localhost:52415")!
+        let request = URLRequest(url: url, timeoutInterval: 3.0)
+
+        while Date() < deadline {
+            let result = await withCheckedContinuation { continuation in
+                URLSession.shared.dataTask(with: request) { _, response, _ in
+                    continuation.resume(returning: (response as? HTTPURLResponse)?.statusCode == 200)
+                }.resume()
+            }
+            if result { return true }
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+        }
+        return false
     }
 
     func stop() {
