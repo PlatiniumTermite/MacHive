@@ -475,6 +475,11 @@ struct MenuBarView: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(.secondary)
 
+            Text("MacHive shares CPU and RAM across your Macs for AI inference.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             VStack(alignment: .leading, spacing: 8) {
                 Toggle("Launch MacHive at login", isOn: $state.launchAtLogin)
                     .font(.callout)
@@ -524,6 +529,14 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
                 }
             }
+
+            Button("Open Shared Projects Folder") {
+                openSharedProjectsFolder()
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.blue)
+            .help("Opens ~/MacHive/Projects. Put this folder in iCloud/Dropbox to share code between Macs.")
 
             Button("Advanced Settings") {
                 state.showAdvancedSettings.toggle()
@@ -641,6 +654,15 @@ struct MenuBarView: View {
                 isFixing = false
             }
         }
+    }
+
+    private func openSharedProjectsFolder() {
+        let folder = URL(fileURLWithPath: "\(NSHomeDirectory())/Library/Application Support/MacHive/Projects")
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: folder.path) {
+            try? fm.createDirectory(at: folder, withIntermediateDirectories: true, attributes: nil)
+        }
+        NSWorkspace.shared.open(folder)
     }
 }
 
