@@ -9,7 +9,7 @@ This guide covers every way to install MacHive and its dependencies.
 3. Double-click MacHive. It appears as a hive icon in the menu bar.
 4. On first launch, MacHive silently installs:
    - Homebrew
-   - Python 3.12
+   - Python 3.13
    - uv (Python package manager)
    - Node.js
    - exo source code
@@ -78,6 +78,21 @@ To create a release `.app`:
 5. **Network permission:** The first time MacHive runs, macOS may ask to allow local network access. Click **Allow**.
 6. **Auto-start cluster:** In Settings, enable **Auto-start cluster on launch** so exo starts automatically when MacHive opens.
 7. **Namespace:** In Settings → Advanced Settings, all Macs must use the same cluster namespace (default is `machive`).
+
+## Perfect setup checklist for real-world use
+
+Do this on every Mac in the cluster:
+
+1. **Move MacHive.app to `/Applications`** — required for network permissions and launch-at-login.
+2. **Allow local network access** when macOS asks. If you missed it, go to **System Settings → Privacy & Security → Local Network** and enable MacHive.
+3. **Turn off macOS firewall** or add MacHive to the allowed list: **System Settings → Network → Firewall**.
+4. **Connect all Macs to the same WiFi network**. Avoid guest networks.
+5. **Use the same namespace** on every Mac. Default is `machive`. Only change it if every Mac uses the same new value.
+6. **Click Start AI Cluster** on every Mac.
+7. **Wait 30–60 seconds** for exo to discover peers and serve the chat page.
+8. **Click Open Chat**.
+
+If anything fails, click **Diagnostics** in the menu bar and use the matching fix button.
 
 ## Common Diagnostics fixes
 

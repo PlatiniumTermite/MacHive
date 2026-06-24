@@ -22,10 +22,10 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 2. Python 3.12, uv, Node
+# 2. Python 3.13, uv, Node
 # -----------------------------------------------------------------------------
-echo "Installing Python 3.12, uv, and Node.js..."
-brew install python@3.12 uv node
+echo "Installing Python 3.13, uv, and Node.js..."
+brew install python@3.13 uv node
 
 # -----------------------------------------------------------------------------
 # 3. exo source

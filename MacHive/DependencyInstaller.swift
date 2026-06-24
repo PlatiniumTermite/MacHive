@@ -2,7 +2,7 @@ import Foundation
 
 enum SetupStep: String, CaseIterable {
     case homebrew = "Homebrew"
-    case python = "Python 3.12"
+    case python = "Python 3.13"
     case uv = "uv"
     case node = "Node.js"
     case exo = "exo source"
@@ -215,18 +215,18 @@ private enum Homebrew {
 private enum Python {
     static var isInstalled: Bool {
         let fm = FileManager.default
-        return fm.fileExists(atPath: "/opt/homebrew/bin/python3.12") ||
-               fm.fileExists(atPath: "/usr/local/bin/python3.12") ||
-               fm.fileExists(atPath: "\(NSHomeDirectory())/.pyenv/shims/python3.12")
+        return fm.fileExists(atPath: "/opt/homebrew/bin/python3.13") ||
+               fm.fileExists(atPath: "/usr/local/bin/python3.13") ||
+               fm.fileExists(atPath: "\(NSHomeDirectory())/.pyenv/shims/python3.13")
     }
 
     static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
         var env = ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"]
         env["HOMEBREW_NO_AUTO_UPDATE"] = "1"
         env["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
-        let result = await runShell("\(Homebrew.path) install python@3.12 -v", environment: env, timeout: 300, onOutput: onOutput)
+        let result = await runShell("\(Homebrew.path) install python@3.13 -v", environment: env, timeout: 300, onOutput: onOutput)
         if result.terminationStatus != 0 {
-            throw DependencyError.pythonInstallFailed(result.stderr.isEmpty ? "brew install python@3.12 failed with code \(result.terminationStatus)." : result.stderr)
+            throw DependencyError.pythonInstallFailed(result.stderr.isEmpty ? "brew install python@3.13 failed with code \(result.terminationStatus)." : result.stderr)
         }
     }
 }

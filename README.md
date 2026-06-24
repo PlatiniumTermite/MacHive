@@ -64,6 +64,9 @@ This first release intentionally does **not** include: Blender rendering, video 
 - Apple Silicon Mac (M1, M2, M3, or M4)
 - All Macs on the same WiFi network
 - Internet connection for first-time setup
+- MacHive.app must be in `/Applications`
+- macOS firewall should be off or MacHive added to allowed apps
+- First-time setup installs Homebrew, Python 3.13, uv, Node.js, and exo source
 
 ## Install
 
