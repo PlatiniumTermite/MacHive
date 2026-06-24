@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacHive — Run AI across multiple Macs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-bg { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); }
+        .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); }
+    </style>
+</head>
+<body class="bg-gray-950 text-white">
+    <div class="min-h-screen">
+        <!-- Hero -->
+        <section class="gradient-bg py-20 px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-amber-300 text-sm font-medium mb-6">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    Latest: v1.1.2
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold mb-6 tracking-tight">
+                    Run <span class="gradient-text">Llama 3 70B</span><br>across multiple Macs
+                </h1>
+                <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
+                    MacHive turns your Apple Silicon Macs into a distributed AI cluster. One click. No terminal. No API keys. Completely free.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="https://github.com/PlatiniumTermite/MacHive/releases/latest/download/MacHive.dmg" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold text-lg rounded-2xl transition shadow-lg shadow-amber-500/25">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                        Download MacHive
+                    </a>
+                    <a href="https://github.com/PlatiniumTermite/MacHive" class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold text-lg rounded-2xl transition">
+                        View on GitHub
+                    </a>
+                </div>
+                <p class="text-sm text-gray-400 mt-6">macOS 13+ · Apple Silicon M1/M2/M3/M4 · Free & open source</p>
+            </div>
+        </section>
+
+        <!-- Quick steps -->
+        <section class="py-20 px-4">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-12">Get started in 3 steps</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="card rounded-2xl p-6">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold mb-4">1</div>
+                        <h3 class="text-xl font-semibold mb-2">Download</h3>
+                        <p class="text-gray-400">Get the DMG from the button above. Open it and drag MacHive to Applications.</p>
+                    </div>
+                    <div class="card rounded-2xl p-6">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold mb-4">2</div>
+                        <h3 class="text-xl font-semibold mb-2">Setup</h3>
+                        <p class="text-gray-400">Launch MacHive. First setup installs Homebrew, Python, uv, Node and exo automatically.</p>
+                    </div>
+                    <div class="card rounded-2xl p-6">
+                        <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold mb-4">3</div>
+                        <h3 class="text-xl font-semibold mb-2">Start cluster</h3>
+                        <p class="text-gray-400">Click Start AI Cluster on every Mac. Wait for Ready, then Open Chat.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="py-20 px-4 bg-gray-900/50">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-12">Why MacHive?</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="card rounded-2xl p-6 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Pool RAM across Macs</h3>
+                            <p class="text-gray-400 text-sm mt-1">Combine 8GB + 16GB Macs to run 70B models.</p>
+                        </div>
+                    </div>
+                    <div class="card rounded-2xl p-6 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Zero configuration</h3>
+                            <p class="text-gray-400 text-sm mt-1">Auto-installs dependencies, discovers peers automatically.</p>
+                        </div>
+                    </div>
+                    <div class="card rounded-2xl p-6 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Completely local</h3>
+                            <p class="text-gray-400 text-sm mt-1">No data leaves your network. No API keys.</p>
+                        </div>
+                    </div>
+                    <div class="card rounded-2xl p-6 flex items-start gap-4">
+                        <div class="w-10 h-10 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center shrink-0">✓</div>
+                        <div>
+                            <h3 class="font-semibold text-lg">Native macOS app</h3>
+                            <p class="text-gray-400 text-sm mt-1">Menu bar app. No terminal needed.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Checklist -->
+        <section class="py-20 px-4">
+            <div class="max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold text-center mb-8">Perfect setup checklist</h2>
+                <p class="text-center text-gray-400 mb-8">Do this on every Mac you want in the cluster.</p>
+                <div class="card rounded-2xl p-8">
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">macOS 13 or later on Apple Silicon (M1/M2/M3/M4)</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">MacHive.app is in /Applications</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">Allow Local Network access when asked</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">macOS firewall is OFF</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">All Macs on the same WiFi network</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">Click Start AI Cluster on every Mac</span></li>
+                        <li class="flex items-start gap-3"><input type="checkbox" class="mt-1 w-5 h-5 rounded border-gray-600 text-amber-500 focus:ring-amber-500 bg-gray-800"> <span class="text-gray-300">Wait for Ready, then click Open Chat</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="py-12 px-4 border-t border-gray-800 text-center text-gray-500 text-sm">
+            <p class="mb-4">Built on <a href="https://github.com/exo-explore/exo" class="text-amber-400 hover:underline">exo</a>. Open source under MIT.</p>
+            <a href="https://github.com/PlatiniumTermite/MacHive/releases" class="text-amber-400 hover:underline">All releases</a>
+            ·
+            <a href="https://github.com/PlatiniumTermite/MacHive/blob/main/INSTALL.md" class="text-amber-400 hover:underline">Full install guide</a>
+            ·
+            <a href="https://github.com/PlatiniumTermite/MacHive/blob/main/README.md" class="text-amber-400 hover:underline">README</a>
+        </footer>
+    </div>
+</body>
+</html>

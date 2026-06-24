@@ -6,6 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![macOS](https://img.shields.io/badge/macOS-13.0+-blue.svg)](https://www.apple.com/macos/)
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-M1%2FM2%2FM3%2FM4-orange.svg)](https://www.apple.com/mac/)
+[![Download](https://img.shields.io/badge/Download-Latest%20DMG-amber.svg)](https://github.com/PlatiniumTermite/MacHive/releases/latest/download/MacHive.dmg)
+
+🌐 **Landing page:** https://platiniumtermite.github.io/MacHive
 
 MacHive turns your Apple Silicon Macs into a distributed AI cluster. Run large language models (Llama 3, Mistral, Qwen) locally by pooling RAM and compute across multiple Macs on your WiFi network.
 
@@ -14,6 +17,12 @@ MacHive turns your Apple Silicon Macs into a distributed AI cluster. Run large l
 ![MacHive Demo](https://via.placeholder.com/800x400.png?text=MacHive+Demo+Screenshot)
 
 > Built on [exo](https://github.com/exo-explore/exo) — the distributed inference framework for Apple Silicon.
+
+## Download
+
+[![Download MacHive](https://img.shields.io/badge/Download-MacHive%20DMG-ffcc00?style=for-the-badge&logo=apple&logoColor=black)](https://github.com/PlatiniumTermite/MacHive/releases/latest/download/MacHive.dmg)
+
+Click the badge above, open the DMG, drag MacHive to Applications, and launch.
 
 ## Perfect Setup Checklist (do this on every Mac)
 
