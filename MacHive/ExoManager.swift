@@ -59,9 +59,10 @@ final class ExoManager: ObservableObject {
         }
 
         Task {
-            // Step 1: Kill any stuck uv processes, clear stale locks, and remove exo pidfile
+            // Step 1: Kill any stuck uv processes, clear stale locks, remove exo pidfile, and free exo ports
             await clearUVLocksInternal()
             await removeExoPidfile()
+            await killPortListeners()
 
             // Step 2: Start exo (uv run will sync automatically if needed)
             await MainActor.run { [weak self] in
@@ -95,6 +96,13 @@ final class ExoManager: ObservableObject {
             }
             try? FileManager.default.removeItem(at: pidFile)
         }
+    }
+
+    private func killPortListeners() async {
+        // exo uses port 52414 for zenoh TCP and 52415 for the HTTP dashboard
+        let _ = await runShell("for port in 52414 52415; do lsof -ti tcp:$port 2>/dev/null | xargs kill -9 2>/dev/null; done; sleep 1", environment: [
+            "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"
+        ], timeout: 10, onOutput: nil)
     }
 
     private func clearUVLocksInternal() async {
@@ -264,6 +272,7 @@ final class ExoManager: ObservableObject {
         // Kill any leftover exo or uv processes that may hold locks, and remove the pidfile
         Task {
             await removeExoPidfile()
+            await killPortListeners()
             let _ = await runShell("pkill -f 'uv run exo' 2>/dev/null; pkill -f 'uv sync' 2>/dev/null; pkill -f 'exo' 2>/dev/null; rm -f /var/folders/*/uv-*.lock 2>/dev/null; rm -f \"\(exoDirectory)/.venv/.lock\" 2>/dev/null; sleep 1", environment: [
                 "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
                 "HOME": NSHomeDirectory()
@@ -356,6 +365,12 @@ final class ExoManager: ObservableObject {
             if lowercased.contains("different namespaces") || lowercased.contains("namespace") && lowercased.contains("mismatch") {
                 self.lastError = "Namespace mismatch: another Mac is using a different namespace. Open Settings → Advanced on every Mac and set the exact same namespace. Default is 'machive'."
                 self.statusText = "Namespace mismatch"
+            }
+            if lowercased.contains("address already in use") || lowercased.contains("can not create a new tcp listener") {
+                self.lastError = "Port 52414 or 52415 is already in use. Another exo process is still running. Click Stop Cluster, wait 5 seconds, then click Start AI Cluster again."
+                self.statusText = "Port blocked by old exo process"
+                self.isRunning = false
+                self.isPreparing = false
             }
             if line.contains("Connected to peer") || line.contains("connected to peer") || line.contains("peer") && line.contains("connected") {
                 self.exoPeerStatus = "Peers connected"
