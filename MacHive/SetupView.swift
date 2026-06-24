@@ -5,6 +5,7 @@ struct SetupView: View {
     @StateObject private var installer = DependencyInstaller()
     @Binding var isComplete: Bool
     @State private var hasStarted = false
+    @State private var terminalOpened = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -32,6 +33,22 @@ struct SetupView: View {
         .onChange(of: installer.error) { _ in
             if installer.error != nil {
                 installer.isRunning = false
+                if !terminalOpened {
+                    terminalOpened = true
+                    installer.openTerminalAndInstall()
+                }
+            }
+        }
+        .onAppear {
+            if !installer.isComplete {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    if !hasStarted {
+                        withAnimation {
+                            hasStarted = true
+                        }
+                        installer.startInstallation()
+                    }
+                }
             }
         }
     }
@@ -51,13 +68,13 @@ struct SetupView: View {
             }
             .frame(width: 280)
 
-            Text("This takes 10–30 minutes on first launch. You can also copy the manual command and run it in Terminal.")
+            Text("This takes 10–30 minutes on first launch. MacHive can install everything in the background, or open Terminal and run it automatically.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .frame(width: 280)
                 .multilineTextAlignment(.center)
 
-            Button("Start Setup") {
+            Button("Install Automatically") {
                 withAnimation {
                     hasStarted = true
                 }
@@ -66,10 +83,8 @@ struct SetupView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
-            Button("Copy Manual Command") {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(installer.manualInstallCommand, forType: .string)
+            Button("Run in Terminal") {
+                installer.openTerminalAndInstall()
             }
             .buttonStyle(.bordered)
             .font(.caption)
@@ -156,18 +171,26 @@ struct SetupView: View {
                     }
 
                     Button("Try Again") {
+                        terminalOpened = false
                         installer.startInstallation()
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
 
-                    Button("Copy Manual Command") {
-                        let pasteboard = NSPasteboard.general
-                        pasteboard.clearContents()
-                        pasteboard.setString(installer.manualInstallCommand, forType: .string)
+                    if terminalOpened {
+                        Text("Terminal opened automatically. Enter your admin password if asked.")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                            .frame(width: 280)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Button("Run in Terminal") {
+                            terminalOpened = true
+                            installer.openTerminalAndInstall()
+                        }
+                        .buttonStyle(.bordered)
+                        .font(.caption)
                     }
-                    .buttonStyle(.bordered)
-                    .font(.caption)
                 }
             }
         }

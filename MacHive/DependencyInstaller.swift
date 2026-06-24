@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 enum SetupStep: String, CaseIterable {
     case homebrew = "Homebrew"
@@ -75,6 +76,18 @@ final class DependencyInstaller: ObservableObject {
         try? copyManualScriptToApplicationSupport()
         let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"
         return "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
+    }
+
+    func openTerminalAndInstall() {
+        try? copyManualScriptToApplicationSupport()
+        let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"
+        let command = "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
+        let appleScript = NSAppleScript(source: "tell application \"Terminal\" to do script \"\(command)\"")
+        var errorInfo: NSDictionary?
+        appleScript?.executeAndReturnError(&errorInfo)
+        if let errorInfo = errorInfo {
+            NSLog("MacHive: Terminal fallback error: \(errorInfo)")
+        }
     }
 
     func startInstallation() {
