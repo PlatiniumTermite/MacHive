@@ -175,7 +175,7 @@ final class ExoManager: ObservableObject {
         let result = await runShell("cd \"\(exoDirectory)\" && uv run exo --help", environment: [
             "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
             "HOME": NSHomeDirectory()
-        ], timeout: 30, onOutput: nil)
+        ], timeout: 10, onOutput: nil)
         if result.terminationStatus == 0 {
             return "exo responded successfully."
         } else {

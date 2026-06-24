@@ -71,20 +71,58 @@ struct DiagnosticsView: View {
                 .cornerRadius(8)
             }
 
-            if isFirewallOn {
-                Button("Open Firewall Settings") {
-                    if let url = URL(string: "x-apple.systempreferences:com.apple.security.firewall") {
-                        NSWorkspace.shared.open(url)
+            if !Self.isInApplications {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Move MacHive.app to /Applications folder for network permissions to work correctly.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open /Applications Folder") {
+                        NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications"))
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
+                .padding(8)
+                .background(Color.red.opacity(0.08))
+                .cornerRadius(8)
+            }
+
+            if isFirewallOn {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("macOS firewall is ON. Turn it off or add MacHive to allowed apps.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Open Firewall Settings") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.security.firewall") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(8)
+                .background(Color.orange.opacity(0.08))
+                .cornerRadius(8)
+            }
+
+            if !exo.isRunning && ExoManager.exoIsInstalled {
+                Button("Start AI Cluster") {
+                    exo.start()
+                }
+                .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity)
             }
 
             Button("Run Checks Again") {
                 runChecks()
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
             .disabled(isRunning)
 
@@ -94,6 +132,22 @@ struct DiagnosticsView: View {
             .buttonStyle(.bordered)
             .frame(maxWidth: .infinity)
             .disabled(testingExo)
+
+            if let testResult = testResult, !testingExo {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: testResult.contains("failed") || testResult.contains("Could not") ? "exclamationmark.triangle" : "checkmark.circle")
+                        .foregroundStyle(testResult.contains("failed") || testResult.contains("Could not") ? .red : .green)
+                    Text("Test exo: \(testResult)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                }
+                .padding(8)
+                .background(Color.secondary.opacity(0.08))
+                .cornerRadius(8)
+            }
 
             Button("Copy Results") {
                 let pasteboard = NSPasteboard.general
