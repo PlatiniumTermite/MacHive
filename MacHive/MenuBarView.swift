@@ -634,6 +634,14 @@ struct MenuBarView: View {
             .foregroundStyle(.blue)
             .help("Opens ~/MacHive/Projects. Put this folder in iCloud/Dropbox to share code between Macs.")
 
+            Button("Open Setup Log") {
+                openSetupLog()
+            }
+            .font(.caption)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Open the setup log for troubleshooting")
+
             Button("Check for Updates") {
                 NotificationCenter.default.post(name: NSNotification.Name("MacHiveCheckForUpdates"), object: nil)
             }
@@ -792,6 +800,15 @@ struct MenuBarView: View {
             try? fm.createDirectory(at: folder, withIntermediateDirectories: true, attributes: nil)
         }
         NSWorkspace.shared.open(folder)
+    }
+
+    private func openSetupLog() {
+        let logPath = DependencyInstaller.logFilePath
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: logPath) {
+            try? "MacHive setup log\n".write(toFile: logPath, atomically: true, encoding: .utf8)
+        }
+        NSWorkspace.shared.open(URL(fileURLWithPath: logPath))
     }
 }
 

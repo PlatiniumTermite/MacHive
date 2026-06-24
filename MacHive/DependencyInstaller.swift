@@ -68,6 +68,34 @@ final class DependencyInstaller: ObservableObject {
     private var currentTask: Task<Void, Never>?
     private let serialQueue = DispatchQueue(label: "com.machive.installer")
 
+    static var logFilePath: String {
+        "\(NSHomeDirectory())/Library/Application Support/MacHive/setup.log"
+    }
+
+    private static func appendToLog(_ text: String) {
+        let path = logFilePath
+        let fm = FileManager.default
+        let dir = (path as NSString).deletingLastPathComponent
+        if !fm.fileExists(atPath: dir) {
+            try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true, attributes: nil)
+        }
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let line = "[\(timestamp)] \(text)\n"
+        if let data = line.data(using: .utf8) {
+            if let handle = FileHandle(forWritingAtPath: path) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                handle.closeFile()
+            } else {
+                try? data.write(to: URL(fileURLWithPath: path), options: .atomic)
+            }
+        }
+    }
+
+    static func readLog() -> String {
+        return (try? String(contentsOfFile: logFilePath, encoding: .utf8)) ?? "No setup log yet."
+    }
+
     var isComplete: Bool {
         Homebrew.isInstalled && Python.isInstalled && Exo.isInstalled
     }
@@ -112,9 +140,11 @@ final class DependencyInstaller: ObservableObject {
         defer { isRunning = false }
         error = nil
         progress = 0
+        DependencyInstaller.appendToLog("Starting MacHive installation")
 
         let outputHandler: @MainActor (String) -> Void = { [weak self] text in
             self?.liveOutput.append(text)
+            DependencyInstaller.appendToLog(text)
             // Keep only last 2000 chars to avoid memory bloat
             if let self = self, self.liveOutput.count > 2000 {
                 self.liveOutput = String(self.liveOutput.suffix(2000))
@@ -176,10 +206,13 @@ final class DependencyInstaller: ObservableObject {
         } catch {
             if let depError = error as? DependencyError {
                 self.error = depError
+                DependencyInstaller.appendToLog("Installation error: \(depError.localizedDescription)")
             } else if error is CancellationError {
                 self.error = .cancelled
+                DependencyInstaller.appendToLog("Installation cancelled")
             } else {
                 self.error = .missingTool(error.localizedDescription)
+                DependencyInstaller.appendToLog("Installation error: \(error.localizedDescription)")
             }
         }
     }

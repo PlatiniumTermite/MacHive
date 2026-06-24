@@ -212,6 +212,13 @@ struct SetupView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.regular)
 
+                    Button("Open Setup Log") {
+                        openSetupLog()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+
                     if terminalOpened {
                         Text("Terminal opened automatically. Enter your admin password if asked.")
                             .font(.caption)
@@ -241,6 +248,15 @@ struct SetupView: View {
                 .font(.callout)
             Spacer()
         }
+    }
+
+    private func openSetupLog() {
+        let logPath = DependencyInstaller.logFilePath
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: logPath) {
+            try? "MacHive setup log\n".write(toFile: logPath, atomically: true, encoding: .utf8)
+        }
+        NSWorkspace.shared.open(URL(fileURLWithPath: logPath))
     }
 }
 
