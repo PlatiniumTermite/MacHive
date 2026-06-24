@@ -44,16 +44,34 @@ final class ExoManager: ObservableObject {
             return
         }
 
+        // Pre-sync exo dependencies to avoid runtime failures
+        let syncTask = Process()
+        syncTask.launchPath = "/bin/zsh"
+        syncTask.currentDirectoryPath = exoDirectory
+        syncTask.arguments = ["-c", "uv sync"]
+        var syncEnv = ProcessInfo.processInfo.environment
+        syncEnv["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        syncEnv["HOME"] = NSHomeDirectory()
+        syncTask.environment = syncEnv
+        do {
+            try syncTask.run()
+            syncTask.waitUntilExit()
+        } catch {
+            NSLog("MacHive: uv sync failed: \(error.localizedDescription)")
+        }
+
         let task = Process()
         task.launchPath = "/bin/zsh"
+        task.currentDirectoryPath = exoDirectory
 
-        let command = "cd \"\(exoDirectory)\" && uv run exo --namespace machive --listen-addr 0.0.0.0"
+        let command = "uv run exo --namespace machive"
         task.arguments = ["-c", command]
 
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         env["RUST_LOG"] = "info,libp2p=debug,exo=debug"
         env["LIBP2P_FORCE_PNET"] = "0"
+        env["HOME"] = NSHomeDirectory()
         task.environment = env
 
         let stdoutPipe = Pipe()
@@ -90,7 +108,8 @@ final class ExoManager: ObservableObject {
                 self.process = nil
                 self.isRunning = false
                 if task.terminationStatus != 0, self.lastError == nil {
-                    self.lastError = "exo exited unexpectedly (code \(task.terminationStatus))."
+                    let recent = self.recentLogs.suffix(5).joined(separator: "\n")
+                    self.lastError = "exo exited unexpectedly (code \(task.terminationStatus)).\n\nRecent logs:\n\(recent)"
                 }
                 if self.restartAttempts < self.maxRestartAttempts {
                     self.restartAttempts += 1
