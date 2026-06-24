@@ -97,6 +97,11 @@ final class ClusterState: ObservableObject {
         didSet { UserDefaults.standard.set(autoSyncNamespace, forKey: "autoSyncNamespace") }
     }
     @Published var showExoLogs: Bool = false
+    @Published var backgroundMode: Bool = UserDefaults.standard.bool(forKey: "MacHiveBackgroundMode") {
+        didSet {
+            UserDefaults.standard.set(backgroundMode, forKey: "MacHiveBackgroundMode")
+        }
+    }
 
     var localPeer: Peer {
         Peer(

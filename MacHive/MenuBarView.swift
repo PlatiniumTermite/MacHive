@@ -488,6 +488,17 @@ struct MenuBarView: View {
                 Toggle("Auto-sync namespace with other Macs", isOn: $state.autoSyncNamespace)
                     .font(.callout)
 
+                Toggle("Background mode", isOn: $state.backgroundMode)
+                    .font(.callout)
+                    .help("Lower CPU priority so coding, training, and video calls stay smooth")
+                    .onChange(of: state.backgroundMode) { _ in
+                        if exo.isRunning {
+                            exo.stop()
+                            state.status = .starting
+                            exo.start(namespace: state.namespace)
+                        }
+                    }
+
                 Toggle("Show exo logs", isOn: $state.showExoLogs)
                     .font(.callout)
             }
