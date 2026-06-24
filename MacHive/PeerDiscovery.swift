@@ -8,7 +8,7 @@ final class PeerDiscovery: ObservableObject {
     static let timeout: TimeInterval = 5.0
     static let udpPort: UInt16 = 52416
     static let multicastGroup = "224.0.0.251"
-    static let broadcastInterval: TimeInterval = 1.0
+    static let broadcastInterval: TimeInterval = 0.5
 
     private var advertiser: NWListener?
     private var browser: NWBrowser?
@@ -33,7 +33,7 @@ final class PeerDiscovery: ObservableObject {
         cleanupTimer = Timer.scheduledTimer(withTimeInterval: PeerDiscovery.cleanupInterval, repeats: true) { [weak self] _ in
             self?.purgeStalePeers()
         }
-        autoScanTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+        autoScanTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             let remoteCount = self.peers.filter { $0.discoveryMethod != "local" }.count
             if remoteCount == 0 {

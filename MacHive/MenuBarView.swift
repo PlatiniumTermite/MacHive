@@ -125,14 +125,20 @@ struct MenuBarView: View {
             .padding(.bottom, 2)
 
             if state.peers.isEmpty {
-                HStack(spacing: 6) {
+                HStack(alignment: .top, spacing: 6) {
                     if discovery.isBrowsing {
                         ProgressView()
                             .controlSize(.small)
-                        Text("Searching for Macs (Bonjour + UDP)...")
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Discovery active: Bonjour + UDP broadcast + UDP multicast")
+                                .font(.caption)
+                            Text("Auto-scanning every 5 seconds for other Macs with MacHive...")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     } else {
                         Image(systemName: "magnifyingglass")
-                        Text("No other Macs found. You can still use MacHive on this Mac alone as a single-node cluster.")
+                        Text("No other Macs found. Make sure other Macs have MacHive running on the same WiFi and namespace.")
                     }
                 }
                 .font(.caption)
