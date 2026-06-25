@@ -7,6 +7,7 @@ struct SetupView: View {
     @State private var hasStarted = false
     @State private var terminalOpened = false
     @State private var completionTimer: Timer?
+    @State private var terminalError: String? = nil
 
     var body: some View {
         VStack(spacing: 24) {
@@ -35,11 +36,24 @@ struct SetupView: View {
             if installer.error != nil {
                 installer.isRunning = false
                 if !terminalOpened {
-                    terminalOpened = true
-                    installer.openTerminalAndInstall()
-                    startCompletionPolling()
+                    if installer.openTerminalAndInstall() {
+                        terminalOpened = true
+                        startCompletionPolling()
+                    } else {
+                        terminalError = "MacHive needs permission to open Terminal. Please allow it in System Settings > Privacy & Security > Automation, or copy the manual command below."
+                    }
                 }
             }
+        }
+        .alert("Could not open Terminal", isPresented: Binding(get: { terminalError != nil }, set: { if !$0 { terminalError = nil } })) {
+            Button("OK", role: .cancel) { }
+            Button("Copy Manual Command") {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(installer.manualInstallCommand, forType: .string)
+            }
+        } message: {
+            Text(terminalError ?? "")
         }
         .onDisappear {
             completionTimer?.invalidate()
@@ -49,12 +63,15 @@ struct SetupView: View {
             if !installer.isComplete && !hasStarted {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     if installer.isHomebrewMissing {
-                        terminalOpened = true
                         withAnimation {
                             hasStarted = true
                         }
-                        installer.openTerminalAndInstall()
-                        startCompletionPolling()
+                        if installer.openTerminalAndInstall() {
+                            terminalOpened = true
+                            startCompletionPolling()
+                        } else {
+                            terminalError = "MacHive needs permission to open Terminal. Please allow it in System Settings > Privacy & Security > Automation, or copy the manual command below."
+                        }
                     } else {
                         withAnimation {
                             hasStarted = true
@@ -95,22 +112,41 @@ struct SetupView: View {
             }
             .frame(width: 280)
 
-            Button("Install Automatically") {
-                withAnimation {
-                    hasStarted = true
+            if installer.isHomebrewMissing {
+                Button("Install in Terminal") {
+                    withAnimation {
+                        hasStarted = true
+                    }
+                    if installer.openTerminalAndInstall() {
+                        terminalOpened = true
+                        startCompletionPolling()
+                    } else {
+                        terminalError = "MacHive needs permission to open Terminal. Please allow it in System Settings > Privacy & Security > Automation, or copy the manual command below."
+                    }
                 }
-                installer.startInstallation()
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            } else {
+                Button("Install Automatically") {
+                    withAnimation {
+                        hasStarted = true
+                    }
+                    installer.startInstallation()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
 
             Button("Run in Terminal") {
-                terminalOpened = true
-                withAnimation {
-                    hasStarted = true
+                if installer.openTerminalAndInstall() {
+                    terminalOpened = true
+                    withAnimation {
+                        hasStarted = true
+                    }
+                    startCompletionPolling()
+                } else {
+                    terminalError = "MacHive needs permission to open Terminal. Please allow it in System Settings > Privacy & Security > Automation, or copy the manual command below."
                 }
-                installer.openTerminalAndInstall()
-                startCompletionPolling()
             }
             .buttonStyle(.bordered)
             .font(.caption)
@@ -235,9 +271,12 @@ struct SetupView: View {
                             .multilineTextAlignment(.center)
                     } else {
                         Button("Run in Terminal") {
-                            terminalOpened = true
-                            installer.openTerminalAndInstall()
-                            startCompletionPolling()
+                            if installer.openTerminalAndInstall() {
+                                terminalOpened = true
+                                startCompletionPolling()
+                            } else {
+                                terminalError = "MacHive needs permission to open Terminal. Please allow it in System Settings > Privacy & Security > Automation, or copy the manual command below."
+                            }
                         }
                         .buttonStyle(.bordered)
                         .font(.caption)

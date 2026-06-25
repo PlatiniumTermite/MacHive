@@ -110,7 +110,7 @@ final class DependencyInstaller: ObservableObject {
         return "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
     }
 
-    func openTerminalAndInstall() {
+    func openTerminalAndInstall() -> Bool {
         try? copyManualScriptToApplicationSupport()
         let scriptPath = "\(NSHomeDirectory())/Library/Application Support/MacHive/install-deps.sh"
         let command = "chmod +x \"\(scriptPath)\" && \"\(scriptPath)\""
@@ -119,7 +119,10 @@ final class DependencyInstaller: ObservableObject {
         appleScript?.executeAndReturnError(&errorInfo)
         if let errorInfo = errorInfo {
             NSLog("MacHive: Terminal fallback error: \(errorInfo)")
+            DependencyInstaller.appendToLog("Terminal fallback error: \(errorInfo)")
+            return false
         }
+        return true
     }
 
     func startInstallation() {
