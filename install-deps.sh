@@ -188,6 +188,23 @@ run_with_retry "npm install" 2 npm install
 run_with_retry "npm run build" 2 npm run build
 
 # -----------------------------------------------------------------------------
+# 7. Verify exo can start
+# -----------------------------------------------------------------------------
+log_section "7. Verifying exo"
+cd "$EXO_DIR"
+if .venv/bin/exo --help &>/dev/null; then
+    log "✅ exo is ready"
+else
+    log "❌ exo command failed. Trying uv run exo --help..."
+    if uv run exo --help 2>> "$LOG_FILE" | head -1 &>/dev/null; then
+        log "✅ exo is ready via uv run"
+    else
+        log "❌ exo cannot start. Please check the log above and try again."
+        exit 1
+    fi
+fi
+
+# -----------------------------------------------------------------------------
 # Done
 # -----------------------------------------------------------------------------
 log_section "Setup complete"

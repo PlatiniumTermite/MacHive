@@ -454,16 +454,28 @@ final class ExoManager: ObservableObject {
                 self.statusText = "Namespace mismatch"
             }
             if lowercased.contains("address already in use") || lowercased.contains("can not create a new tcp listener") {
-                self.lastError = "The AI engine ports are already in use. Another process is still running. Click Fix Common Issues, or stop and restart the cluster."
-                self.statusText = "Port blocked"
+                self.lastError = "The AI engine ports are already in use. Clearing stuck processes and restarting..."
+                self.statusText = "Clearing ports..."
                 self.isRunning = false
-                self.isPreparing = false
+                self.isPreparing = true
+                Task { @MainActor [weak self] in
+                    let _ = await self?.clearUVLocks()
+                    await self?.killPortListeners()
+                    self?.lastError = nil
+                    self?.start()
+                }
             }
             if lowercased.contains("module mlx") || lowercased.contains("no module named 'mlx'") || lowercased.contains("no module named \"mlx\"") {
-                self.lastError = "Apple's MLX library is missing. Click Fix Common Issues to install it automatically, then restart the cluster."
-                self.statusText = "MLX missing"
+                self.lastError = "Apple's MLX library is missing. Installing it automatically..."
+                self.statusText = "Installing MLX..."
                 self.isRunning = false
-                self.isPreparing = false
+                self.isPreparing = true
+                Task { @MainActor [weak self] in
+                    let result = await self?.installMLX() ?? "Unknown error"
+                    NSLog("MacHive: Auto MLX install result: \(result)")
+                    self?.lastError = nil
+                    self?.start()
+                }
             }
             if line.contains("Connected to peer") || line.contains("connected to peer") || line.contains("peer") && line.contains("connected") {
                 self.exoPeerStatus = "Peers connected"
