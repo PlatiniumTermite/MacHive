@@ -234,4 +234,8 @@ enum SystemInfo {
         }
         return brand
     }
+
+    static var isAppleSilicon: Bool {
+        chipModel.contains("M") || chipModel.contains("Apple")
+    }
 }

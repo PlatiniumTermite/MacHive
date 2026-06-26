@@ -16,6 +16,7 @@ enum DependencyError: Error, LocalizedError, Equatable {
     case nodeInstallFailed(String)
     case exoCloneFailed(String)
     case exoBuildFailed(String)
+    case mlxInstallFailed(String)
     case missingTool(String)
     case cancelled
 
@@ -33,6 +34,8 @@ enum DependencyError: Error, LocalizedError, Equatable {
             return "Couldn't download exo. \(msg)"
         case .exoBuildFailed(let msg):
             return "Couldn't build exo. \(msg)"
+        case .mlxInstallFailed(let msg):
+            return "Couldn't install Apple's MLX library. \(msg)"
         case .missingTool(let tool):
             return "Missing required tool: \(tool)"
         case .cancelled:
@@ -50,6 +53,8 @@ enum DependencyError: Error, LocalizedError, Equatable {
             return "Check your internet connection and try again."
         case .exoBuildFailed:
             return "Node.js may be missing. Run install-deps.sh manually to fix it."
+        case .mlxInstallFailed:
+            return "Click Fix Common Issues in MacHive, or run: cd ~/Library/Application Support/MacHive/exo && uv pip install mlx mlx-lm mlx-vlm"
         default:
             return nil
         }
@@ -97,7 +102,12 @@ final class DependencyInstaller: ObservableObject {
     }
 
     var isComplete: Bool {
-        Homebrew.isInstalled && Python.isInstalled && Exo.isInstalled
+        let base = Homebrew.isInstalled && Python.isInstalled && Exo.isInstalled
+        #if arch(arm64)
+        return base && Mlx.isInstalled
+        #else
+        return base
+        #endif
     }
 
     var isHomebrewMissing: Bool {
@@ -204,6 +214,13 @@ final class DependencyInstaller: ObservableObject {
             completedSteps.insert(.exo)
 
             try Task.checkCancellation()
+            #if arch(arm64)
+            update(message: "Checking Apple MLX...", progress: 0.90)
+            if !Mlx.isInstalled {
+                update(message: "Installing Apple MLX...", progress: 0.92)
+                try await Mlx.install(onOutput: outputHandler)
+            }
+            #endif
             update(message: "Finishing setup...", progress: 1.0)
             try await Task.sleep(nanoseconds: 500_000_000)
         } catch {
@@ -304,6 +321,25 @@ private enum Uv {
     }
 }
 
+private enum Mlx {
+    static var isInstalled: Bool {
+        let exoDir = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
+        let result = runShellSync("cd \"\(exoDir)\" && .venv/bin/python -c \"import mlx.core as mx; print('MLX OK')\"")
+        return result.terminationStatus == 0 && result.stdout.contains("MLX OK")
+    }
+
+    static func install(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
+        let exoDir = "\(NSHomeDirectory())/Library/Application Support/MacHive/exo"
+        let result = await runShell("cd \"\(exoDir)\" && uv pip install mlx mlx-lm mlx-vlm", environment: [
+            "PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 300, onOutput: onOutput)
+        if result.terminationStatus != 0 {
+            throw DependencyError.mlxInstallFailed(result.stderr.isEmpty ? "MLX install failed with code \(result.terminationStatus)." : result.stderr)
+        }
+    }
+}
+
 private enum Node {
     static var isInstalled: Bool {
         FileManager.default.fileExists(atPath: "/opt/homebrew/bin/node") ||
@@ -348,7 +384,7 @@ private enum Exo {
     }
 
     static func createVenv(onOutput: (@MainActor (String) -> Void)? = nil) async throws {
-        let result = await runShell("cd \"\(installDirectory)\" && uv venv && uv sync", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600, onOutput: onOutput)
+        let result = await runShell("cd \"\(installDirectory)\" && uv venv && uv sync --extra mlx", environment: ["PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"], timeout: 600, onOutput: onOutput)
         if result.terminationStatus != 0 {
             throw DependencyError.exoBuildFailed(result.stderr.isEmpty ? "Python environment setup failed with code \(result.terminationStatus)." : result.stderr)
         }
@@ -367,6 +403,33 @@ struct ShellResult {
     let stdout: String
     let stderr: String
     let terminationStatus: Int32
+}
+
+func runShellSync(_ command: String, environment: [String: String] = [:]) -> ShellResult {
+    let task = Process()
+    task.launchPath = "/bin/zsh"
+    task.arguments = ["-c", command]
+    var env = ProcessInfo.processInfo.environment
+    for (key, value) in environment {
+        env[key] = value
+    }
+    task.environment = env
+
+    let stdoutPipe = Pipe()
+    let stderrPipe = Pipe()
+    task.standardOutput = stdoutPipe
+    task.standardError = stderrPipe
+
+    do {
+        try task.run()
+        task.waitUntilExit()
+    } catch {
+        return ShellResult(stdout: "", stderr: error.localizedDescription, terminationStatus: -1)
+    }
+
+    let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+    return ShellResult(stdout: stdout, stderr: stderr, terminationStatus: task.terminationStatus)
 }
 
 func runShell(_ command: String, environment: [String: String], timeout: TimeInterval, onOutput: (@MainActor (String) -> Void)? = nil) async -> ShellResult {

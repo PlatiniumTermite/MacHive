@@ -756,6 +756,16 @@ struct MenuBarView: View {
             let _ = await exo.clearUVLocks()
             exo.stop()
             try? await Task.sleep(nanoseconds: 2_000_000_000)
+
+            // On Apple Silicon, ensure MLX is installed before restarting
+            if SystemInfo.isAppleSilicon {
+                let mlxOk = await exo.verifyMLX()
+                if !mlxOk {
+                    let mlxResult = await exo.installMLX()
+                    NSLog("MacHive: MLX fix result: \(mlxResult)")
+                }
+            }
+
             await MainActor.run {
                 state.status = .starting
                 exo.start(namespace: state.namespace)

@@ -411,6 +411,34 @@ final class ExoManager: ObservableObject {
         }
     }
 
+    func installMLX() async -> String {
+        await MainActor.run { [weak self] in
+            self?.statusText = "Installing MLX for Apple Silicon..."
+        }
+        let result = await runShell("cd \"\(exoDirectory)\" && uv pip install mlx mlx-lm mlx-vlm", environment: [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 300, onOutput: { [weak self] text in
+            Task { @MainActor [weak self] in
+                self?.appendLog(text)
+            }
+        })
+        if result.terminationStatus == 0 {
+            return "MLX installed successfully. Stop and restart the cluster."
+        } else {
+            let output = (result.stdout + "\n" + result.stderr).trimmingCharacters(in: .whitespacesAndNewlines)
+            return "MLX install failed (code \(result.terminationStatus)): \(output.isEmpty ? "No output" : output)"
+        }
+    }
+
+    func verifyMLX() async -> Bool {
+        let result = await runShell("cd \"\(exoDirectory)\" && .venv/bin/python -c \"import mlx.core as mx; print('MLX OK')\"", environment: [
+            "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+            "HOME": NSHomeDirectory()
+        ], timeout: 10, onOutput: nil)
+        return result.terminationStatus == 0 && result.stdout.contains("MLX OK")
+    }
+
     private func appendLog(_ line: String) {
         recentLogs.append(line)
         if recentLogs.count > maxLogLines {
@@ -428,6 +456,12 @@ final class ExoManager: ObservableObject {
             if lowercased.contains("address already in use") || lowercased.contains("can not create a new tcp listener") {
                 self.lastError = "The AI engine ports are already in use. Another process is still running. Click Fix Common Issues, or stop and restart the cluster."
                 self.statusText = "Port blocked"
+                self.isRunning = false
+                self.isPreparing = false
+            }
+            if lowercased.contains("module mlx") || lowercased.contains("no module named 'mlx'") || lowercased.contains("no module named \"mlx\"") {
+                self.lastError = "Apple's MLX library is missing. Click Fix Common Issues to install it automatically, then restart the cluster."
+                self.statusText = "MLX missing"
                 self.isRunning = false
                 self.isPreparing = false
             }

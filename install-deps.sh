@@ -146,11 +146,42 @@ fi
 log_section "5. Creating Python environment for exo"
 cd "$EXO_DIR"
 run_with_retry "uv venv" 2 uv venv
-run_with_retry "uv sync" 2 uv sync
+
+# On macOS we need the MLX backend for Apple Silicon.
+# Use the optional dependency group if available, otherwise install mlx directly.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    log "Installing exo with Apple Silicon MLX support..."
+    run_with_retry "uv sync with MLX extra" 2 uv sync --extra mlx || {
+        log "Falling back to explicit MLX install..."
+        run_with_retry "uv pip install mlx" 2 uv pip install mlx mlx-lm mlx-vlm
+    }
+else
+    run_with_retry "uv sync" 2 uv sync
+fi
+
+# Verify MLX is usable on Apple Silicon
+if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
+    log "Verifying MLX installation..."
+    if .venv/bin/python -c "import mlx.core as mx; print('MLX OK')" 2>> "$LOG_FILE"; then
+        log "✅ MLX is ready for Apple Silicon"
+    else
+        log "❌ MLX verification failed. Installing mlx directly..."
+        run_with_retry "uv pip install mlx" 2 uv pip install mlx mlx-lm mlx-vlm
+        if .venv/bin/python -c "import mlx.core as mx; print('MLX OK')" 2>> "$LOG_FILE"; then
+            log "✅ MLX is ready for Apple Silicon"
+        else
+            log "❌ MLX still cannot be imported. The cluster may not work on Apple Silicon."
+            log "Please run this manually in Terminal:"
+            log "    cd \"$EXO_DIR\" && uv pip install mlx mlx-lm mlx-vlm"
+            exit 1
+        fi
+    fi
+fi
 
 # -----------------------------------------------------------------------------
 # 6. Build exo dashboard
 # -----------------------------------------------------------------------------
+
 log_section "6. Building exo dashboard"
 cd "$EXO_DIR/dashboard"
 run_with_retry "npm install" 2 npm install
