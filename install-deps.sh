@@ -4,90 +4,165 @@
 
 set -e
 
-echo "🐝 MacHive dependency installer"
-echo "This will install Homebrew, Python 3.13, uv, Node.js, and exo."
-echo "You may be asked for your Mac admin password."
-echo ""
+# Make sure the script is running in a proper interactive shell
+export HOME="$HOME"
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
 
+# Persistent MacHive support directory
+SUPPORT_DIR="$HOME/Library/Application Support/MacHive"
+LOG_FILE="$SUPPORT_DIR/setup.log"
+EXO_DIR="$SUPPORT_DIR/exo"
+mkdir -p "$SUPPORT_DIR"
+
+# -----------------------------------------------------------------------------
+# Logging helpers
+# -----------------------------------------------------------------------------
+log() {
+    local line="$(date '+%Y-%m-%d %H:%M:%S') $1"
+    echo "$line"
+    echo "$line" >> "$LOG_FILE"
+}
+
+log_section() {
+    log ""
+    log "══════════════════════════════════════════════════════════════════════"
+    log "$1"
+    log "══════════════════════════════════════════════════════════════════════"
+}
+
+log "🐝 MacHive dependency installer"
+log "This will install Homebrew, Python 3.13, uv, Node.js, and exo."
+log "You may be asked for your Mac admin password."
+log "Full log is saved to: $LOG_FILE"
+
+# -----------------------------------------------------------------------------
 # Ensure brew is in PATH for this session
+# -----------------------------------------------------------------------------
 ensure_brew_in_path() {
     if [[ -f /opt/homebrew/bin/brew ]]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
+        eval "$(/opt/homebrew/bin/brew shellenv)" &>/dev/null || true
     elif [[ -f /usr/local/bin/brew ]]; then
-        eval "$(/usr/local/bin/brew shellenv)"
+        eval "$(/usr/local/bin/brew shellenv)" &>/dev/null || true
+    elif [[ -f /home/linuxbrew/.linuxbrew/bin/brew ]]; then
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" &>/dev/null || true
     fi
+    export PATH="/opt/homebrew/bin:/usr/local/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
 }
 
 # -----------------------------------------------------------------------------
-# 1. Homebrew
+# Run a command with retries
 # -----------------------------------------------------------------------------
-ensure_brew_in_path
-if ! command -v brew &>/dev/null; then
-    echo "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    ensure_brew_in_path
-    if ! command -v brew &>/dev/null; then
-        echo "❌ Homebrew installation failed. Please restart Terminal and try again."
+run_with_retry() {
+    local desc="$1"
+    local max_attempts="${2:-3}"
+    shift 2
+    local attempt=1
+    while true; do
+        log "▶️  $desc (attempt $attempt/$max_attempts)..."
+        if "$@"; then
+            log "✅ $desc succeeded"
+            return 0
+        fi
+        if [[ $attempt -ge $max_attempts ]]; then
+            log "❌ $desc failed after $max_attempts attempts"
+            return 1
+        fi
+        attempt=$((attempt + 1))
+        log "⏳ Retrying in 5 seconds..."
+        sleep 5
+    done
+}
+
+# -----------------------------------------------------------------------------
+# 1. Xcode Command Line Tools
+# -----------------------------------------------------------------------------
+log_section "1. Checking Xcode Command Line Tools"
+if ! xcode-select -p &>/dev/null; then
+    log "Xcode Command Line Tools not found. Installing..."
+    log "A system dialog will appear. Click 'Install' and wait."
+    xcode-select --install 2>/dev/null || true
+    # Wait for the user to install or for the tools to become available
+    for i in {1..60}; do
+        if xcode-select -p &>/dev/null; then
+            log "✅ Xcode Command Line Tools installed"
+            break
+        fi
+        log "⏳ Waiting for Xcode Command Line Tools... ($i/60)"
+        sleep 10
+    done
+    if ! xcode-select -p &>/dev/null; then
+        log "❌ Xcode Command Line Tools were not installed. Please install them manually and restart MacHive."
         exit 1
     fi
 else
-    echo "✅ Homebrew already installed."
+    log "✅ Xcode Command Line Tools already installed"
 fi
 
 # -----------------------------------------------------------------------------
-# 2. Python 3.13, uv, Node
+# 2. Homebrew
 # -----------------------------------------------------------------------------
-echo "Installing Python 3.13, uv, and Node.js..."
-brew install python@3.13 uv node || {
-    echo "❌ Failed to install Python/uv/Node. Check your internet and try again."
-    exit 1
-}
-
-# -----------------------------------------------------------------------------
-# 3. exo source
-# -----------------------------------------------------------------------------
-EXO_DIR="$HOME/Library/Application Support/MacHive/exo"
-mkdir -p "$HOME/Library/Application Support/MacHive"
-
-if [[ -d "$EXO_DIR/.git" ]]; then
-    echo "Updating existing exo clone..."
-    cd "$EXO_DIR"
-    git pull --ff-only || true
+log_section "2. Installing Homebrew"
+ensure_brew_in_path
+if ! command -v brew &>/dev/null; then
+    log "Homebrew not found. Installing..."
+    log "A password prompt will appear soon. Type your Mac admin password."
+    run_with_retry "Homebrew install" 2 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    ensure_brew_in_path
+    if ! command -v brew &>/dev/null; then
+        log "❌ Homebrew installation failed. Please restart Terminal and try again."
+        log "Common fix: run the following command, then close and reopen Terminal:"
+        log '    echo "eval "$(/opt/homebrew/bin/brew shellenv)"" >> ~/.zprofile'
+        exit 1
+    fi
 else
-    echo "Cloning exo..."
+    log "✅ Homebrew already installed: $(command -v brew)"
+fi
+
+# -----------------------------------------------------------------------------
+# 3. Python 3.13, uv, Node
+# -----------------------------------------------------------------------------
+log_section "3. Installing Python 3.13, uv, and Node.js"
+run_with_retry "brew install python@3.13 uv node" 2 brew install python@3.13 uv node
+
+# -----------------------------------------------------------------------------
+# 4. exo source
+# -----------------------------------------------------------------------------
+log_section "4. Preparing exo source"
+if [[ -d "$EXO_DIR/.git" ]]; then
+    log "Updating existing exo clone..."
+    cd "$EXO_DIR"
+    run_with_retry "git pull" 2 git pull --ff-only
+else
+    log "Cloning exo..."
     rm -rf "$EXO_DIR"
-    git clone --depth 1 https://github.com/exo-explore/exo.git "$EXO_DIR"
+    run_with_retry "git clone exo" 2 git clone --depth 1 https://github.com/exo-explore/exo.git "$EXO_DIR"
     cd "$EXO_DIR"
 fi
 
 # -----------------------------------------------------------------------------
-# 4. Create Python environment for exo
+# 5. Create Python environment for exo
 # -----------------------------------------------------------------------------
-echo "Creating Python environment for exo..."
+log_section "5. Creating Python environment for exo"
 cd "$EXO_DIR"
-uv venv || {
-    echo "❌ Failed to create Python environment."
-    exit 1
-}
-uv sync || {
-    echo "❌ Failed to install exo dependencies."
-    exit 1
-}
+run_with_retry "uv venv" 2 uv venv
+run_with_retry "uv sync" 2 uv sync
 
 # -----------------------------------------------------------------------------
-# 5. Build exo dashboard
+# 6. Build exo dashboard
 # -----------------------------------------------------------------------------
-echo "Building exo dashboard (this may take a few minutes)..."
+log_section "6. Building exo dashboard"
 cd "$EXO_DIR/dashboard"
-npm install || {
-    echo "❌ Failed to install dashboard dependencies."
-    exit 1
-}
-npm run build || {
-    echo "❌ Failed to build dashboard."
-    exit 1
-}
+run_with_retry "npm install" 2 npm install
+run_with_retry "npm run build" 2 npm run build
 
-echo ""
-echo "✅ All dependencies are ready."
-echo "You can now close Terminal and return to MacHive."
+# -----------------------------------------------------------------------------
+# Done
+# -----------------------------------------------------------------------------
+log_section "Setup complete"
+log "✅ All dependencies are ready."
+log "You can now close Terminal and return to MacHive."
+log ""
+
+# Create a completion marker so MacHive can detect it quickly
+printf '%s' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$SUPPORT_DIR/.setup-complete"

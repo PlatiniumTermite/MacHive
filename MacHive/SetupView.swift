@@ -84,10 +84,15 @@ struct SetupView: View {
     }
 
     private var welcomeContent: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 18) {
             Text("Welcome to MacHive")
                 .font(.title2)
                 .fontWeight(.semibold)
+                .multilineTextAlignment(.center)
+
+            Text("Share CPU and RAM across your Macs for AI.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             VStack(alignment: .leading, spacing: 12) {
@@ -98,17 +103,21 @@ struct SetupView: View {
             }
             .frame(width: 280)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("First launch setup")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("What happens now")
                     .font(.caption)
                     .fontWeight(.semibold)
-                Text("MacHive will install everything automatically. If Homebrew is missing, Terminal will open and run the installer. You only need to enter your admin password when asked.")
+                Text("MacHive will install everything automatically. On a brand new Mac, Terminal opens and asks for your admin password. After that, you can walk away.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("This takes 10–30 minutes depending on your internet.")
+                Text("Typical time: 10–30 minutes.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("If Terminal does not open, click the copy button below and paste the command into Terminal yourself.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(width: 280)
 
