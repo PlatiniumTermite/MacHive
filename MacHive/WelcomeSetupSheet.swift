@@ -109,6 +109,10 @@ struct WelcomeSetupSheet: View {
         .frame(width: 380)
         .onAppear {
             refreshChecks()
+            // Auto-trigger the system Local Network permission dialog
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                NotificationCenter.default.post(name: NSNotification.Name("MacHiveRequestLocalNetwork"), object: nil)
+            }
         }
     }
 
