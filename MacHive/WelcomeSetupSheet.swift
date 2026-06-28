@@ -6,25 +6,26 @@ struct WelcomeSetupSheet: View {
     @State private var isFirewallOn = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "hexagon.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 40, height: 40)
-                    .foregroundColor(.accentColor)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("MacHive Setup")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                    Text("Complete these steps for perfect performance")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Image(systemName: "hexagon.fill")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 40, height: 40)
+                        .foregroundColor(.accentColor)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("MacHive Setup")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("Complete these steps for perfect performance")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
                 }
-                Spacer()
-            }
 
-            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: isInApplications ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                         .foregroundStyle(isInApplications ? .green : .red)
@@ -99,14 +100,16 @@ struct WelcomeSetupSheet: View {
 
             Divider()
 
-            Button("Done") {
-                isPresented = false
+                Button("Done") {
+                    isPresented = false
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
+            .padding()
+            .frame(width: 380)
         }
-        .padding()
-        .frame(width: 380)
+        .frame(width: 380, height: 460)
         .onAppear {
             refreshChecks()
             // Auto-trigger the system Local Network permission dialog

@@ -21,18 +21,21 @@ struct MenuBarView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            Divider()
-            peerList
-            Divider()
-            controls
-            Divider()
-            statusFooter
-            Divider()
-            settingsSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
+                Divider()
+                peerList
+                Divider()
+                controls
+                Divider()
+                statusFooter
+                Divider()
+                settingsSection
+            }
+            .frame(width: 320)
         }
-        .frame(width: 320)
+        .frame(width: 320, height: 520)
         .onAppear {
             updatePeers()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

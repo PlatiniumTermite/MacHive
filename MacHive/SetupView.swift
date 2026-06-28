@@ -10,21 +10,24 @@ struct SetupView: View {
     @State private var terminalError: String? = nil
 
     var body: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "hexagon.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 64, height: 64)
-                .foregroundColor(.accentColor)
+        ScrollView {
+            VStack(spacing: 24) {
+                Image(systemName: "hexagon.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .foregroundColor(.accentColor)
 
-            if !hasStarted {
-                welcomeContent
-            } else {
-                setupContent
+                if !hasStarted {
+                    welcomeContent
+                } else {
+                    setupContent
+                }
             }
+            .padding(32)
+            .frame(width: 380)
         }
-        .padding(32)
-        .frame(width: 380)
+        .frame(width: 380, height: 480)
         .onChange(of: installer.isComplete) { complete in
             if complete {
                 withAnimation {
